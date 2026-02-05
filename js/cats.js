@@ -112,7 +112,70 @@ function spawnCatsForRing(ring) {
       velocity: new THREE.Vector3(), caught: false,
       soundTimer: randomRange(2,8), bobPhase: Math.random()*Math.PI*2,
       idleTimer: 0, isIdle: false,
+      // Flip animation: periodically mirror on X axis
+      flipTimer: randomRange(3, 8), flipDirection: 1, flipProgress: 0, isFlipping: false,
+      // Spin-hop animation: occasional 360 spin with small hop
+      spinHopTimer: randomRange(5, 15), spinHopProgress: 0, isSpinHopping: false,
     });
+  }
+}
+
+function updateCatAnimations(cat, dt) {
+  // --- Flip animation (periodic horizontal mirror) ---
+  if (!cat.isFlipping) {
+    cat.flipTimer -= dt;
+    if (cat.flipTimer <= 0) {
+      cat.isFlipping = true;
+      cat.flipProgress = 0;
+      cat.flipDirection *= -1; // Toggle direction
+    }
+  }
+  if (cat.isFlipping) {
+    // Animate flip over ~0.3 seconds using smooth step
+    cat.flipProgress += dt / 0.3;
+    if (cat.flipProgress >= 1) {
+      cat.flipProgress = 1;
+      cat.isFlipping = false;
+      cat.flipTimer = randomRange(3, 8);
+    }
+    // Smooth scale interpolation from old direction to new
+    const from = -cat.flipDirection; // Previous direction
+    const to = cat.flipDirection;    // New direction
+    const t = cat.flipProgress * cat.flipProgress * (3 - 2 * cat.flipProgress); // smoothstep
+    const baseScale = cat.mesh.userData.isModelCat ? CAT_MODEL_BASE_SCALE * cat.size : 1;
+    cat.mesh.scale.x = baseScale * (from + (to - from) * t);
+  }
+
+  // --- Spin-hop animation (occasional 360 rotation with small hops) ---
+  if (!cat.isSpinHopping) {
+    cat.spinHopTimer -= dt;
+    if (cat.spinHopTimer <= 0) {
+      cat.isSpinHopping = true;
+      cat.spinHopProgress = 0;
+    }
+  }
+  if (cat.isSpinHopping) {
+    const spinDuration = 0.6; // Full spin takes 0.6 seconds
+    cat.spinHopProgress += dt / spinDuration;
+    if (cat.spinHopProgress >= 1) {
+      cat.spinHopProgress = 1;
+      cat.isSpinHopping = false;
+      cat.spinHopTimer = randomRange(5, 15);
+    }
+    const t = cat.spinHopProgress;
+    // Ease-in-out spin speed: accelerate then decelerate
+    const spinSpeed = t < 0.5 ? 4 * t : 4 * (1 - t);
+    // Add a full 360-degree Y rotation on top of the current facing direction
+    cat.mesh.rotation.y += (dt / spinDuration) * Math.PI * 2 * spinSpeed;
+    // Small hop: two little hops during the spin (using sin for bounce)
+    const hopHeight = 0.15 * cat.size;
+    const hopOffset = Math.sin(t * Math.PI * 2) * hopHeight * (1 - t * 0.3);
+    cat.mesh.position.y += Math.max(0, hopOffset);
+    // Slight X-axis tilt during spin for liveliness
+    cat.mesh.rotation.x = Math.sin(t * Math.PI * 2) * 0.15;
+  } else {
+    // Ease rotation.x back to zero when not spinning
+    cat.mesh.rotation.x *= 0.9;
   }
 }
 
@@ -133,6 +196,7 @@ function updateCat(cat, dt, playerPos) {
       cat.bobPhase += dt * 2;
       cat.mesh.rotation.z = Math.sin(cat.bobPhase) * 0.03;
       cat.mesh.position.y = 0;
+      updateCatAnimations(cat, dt);
       return;
     }
   }
@@ -164,6 +228,8 @@ function updateCat(cat, dt, playerPos) {
     // Ease roll back to zero when stopped
     cat.mesh.rotation.z *= 0.9;
   }
+
+  updateCatAnimations(cat, dt);
 
   cat.soundTimer-=dt; if(cat.soundTimer<=0){playCatSound(cat.mesh.position,cat.size);cat.soundTimer=randomRange(4,14);}
 }
