@@ -71,4 +71,4 @@ function updateCat(cat, dt, playerPos) {
 
 function clampToRoom(pos, maxR) { const r=Math.sqrt(pos.x*pos.x+pos.z*pos.z); if(r>maxR){pos.x*=maxR/r;pos.z*=maxR/r;} }
 function clearCats() { for(const c of cats) scene.remove(c.mesh); cats.length=0; }
-function allCurrentCatsDone() { return cats.every(c=>c.caught) && state.catsInBag===0; }
+function allCurrentCatsDone() { return cats.every(c=>c.caught) && state.catsInBag===0 && projectileCats.length===0; }

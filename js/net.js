@@ -36,3 +36,110 @@ function depositCats() {
     setTimeout(()=>startExpansion(), 600);
   }
 }
+
+// ===================== CAT CANNON =====================
+const projectileCats = [];
+const CANNON_SPEED = 18;
+const CANNON_GRAVITY = 12;
+const CRATE_HIT_RADIUS = 1.8;
+
+function toggleCannonMode() {
+  if(!state.upgrades.catCannon || state.phase!=='PLAYING' || state.expanding) return;
+  state.cannonMode = !state.cannonMode;
+  netGroup.visible = !state.cannonMode;
+  updateCannonDisplay();
+  if(state.cannonMode) showCenterMsg("Cannon mode! Click to shoot cats");
+  else hideCenterMsg();
+}
+
+function shootCat() {
+  if(!state.cannonMode || state.catsInBag<=0 || state.phase!=='PLAYING' || state.expanding) return;
+  state.catsInBag--;
+  updateBagDisplay();
+
+  const color = CAT_COLORS[Math.floor(Math.random()*CAT_COLORS.length)];
+  const mesh = createCatMesh(color, 0.9);
+  mesh.position.copy(camera.position);
+  mesh.position.y -= 0.2;
+  scene.add(mesh);
+
+  const dir = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize();
+  const velocity = dir.multiplyScalar(CANNON_SPEED);
+
+  projectileCats.push({ mesh, velocity, age: 0 });
+  playWooshSound();
+}
+
+function updateProjectileCats(dt) {
+  for(let i=projectileCats.length-1; i>=0; i--){
+    const p = projectileCats[i];
+    p.age += dt;
+    p.velocity.y -= CANNON_GRAVITY * dt;
+    p.mesh.position.x += p.velocity.x * dt;
+    p.mesh.position.y += p.velocity.y * dt;
+    p.mesh.position.z += p.velocity.z * dt;
+    p.mesh.rotation.x += dt * 8;
+    p.mesh.rotation.z += dt * 5;
+
+    // Check crate collision (crate is at origin)
+    const dx = p.mesh.position.x, dz = p.mesh.position.z;
+    const distToCrate = Math.sqrt(dx*dx + dz*dz);
+    if(distToCrate < CRATE_HIT_RADIUS && p.mesh.position.y < 1.5 && p.mesh.position.y > -0.5) {
+      scene.remove(p.mesh);
+      projectileCats.splice(i, 1);
+      state.dayScore++; state.totalScore++; state.currency++;
+      showCenterMsg("+1 cat deposited by cannon!");
+      playDepositSound(); updateScoreDisplay();
+      if(allCurrentCatsDone() && !state.expanding) {
+        setTimeout(()=>startExpansion(), 600);
+      }
+      continue;
+    }
+
+    // If cat hits the floor (missed), respawn it as a roaming cat
+    if(p.mesh.position.y <= 0) {
+      p.mesh.position.y = 0;
+      scene.remove(p.mesh);
+      projectileCats.splice(i, 1);
+
+      // Respawn as a roaming cat at landing position
+      const landX = p.mesh.position.x, landZ = p.mesh.position.z;
+      const roomR = getCurrentMaxRadius() - 0.8;
+      const landR = Math.sqrt(landX*landX + landZ*landZ);
+      const spawnX = landR > roomR ? landX * (roomR/landR) : landX;
+      const spawnZ = landR > roomR ? landZ * (roomR/landR) : landZ;
+
+      const newColor = CAT_COLORS[Math.floor(Math.random()*CAT_COLORS.length)];
+      const size = randomRange(0.7, 1.1);
+      const newMesh = createCatMesh(newColor, size);
+      newMesh.position.set(spawnX, 0, spawnZ);
+      newMesh.rotation.y = Math.random()*Math.PI*2;
+      scene.add(newMesh);
+      const diff = getCatDifficulty(state.activeDayRing);
+      cats.push({
+        mesh: newMesh, ring: state.activeDayRing, size,
+        speed: randomRange(1.0,2.5)*diff,
+        turnSpeed: randomRange(1.5,4)*(1+state.activeDayRing*0.2),
+        fleeDistance: randomRange(3.5,7)+state.activeDayRing*1,
+        fleeStrength: Math.min(randomRange(0.4,0.95)+state.activeDayRing*0.1, 0.98),
+        wanderAngle: Math.random()*Math.PI*2, wanderTimer: randomRange(0.5,3),
+        velocity: new THREE.Vector3(), caught: false,
+        soundTimer: randomRange(2,8), bobPhase: Math.random()*Math.PI*2,
+        idleTimer: 0, isIdle: false,
+      });
+      showCenterMsg("Missed! Cat is back on the loose!");
+      continue;
+    }
+
+    // Remove if too old (safety)
+    if(p.age > 5) {
+      scene.remove(p.mesh);
+      projectileCats.splice(i, 1);
+    }
+  }
+}
+
+function clearProjectileCats() {
+  for(const p of projectileCats) scene.remove(p.mesh);
+  projectileCats.length = 0;
+}
