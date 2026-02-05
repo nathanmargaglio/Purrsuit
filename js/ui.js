@@ -45,3 +45,29 @@ function updateCannonDisplay(){
   if(el) el.classList.toggle('active',state.cannonMode);
 }
 function hideUpgradeScreen(){document.getElementById('upgrade-screen').classList.remove('active');}
+
+// ===================== FULLSCREEN =====================
+function updateFullscreenBtn(){
+  const btn=document.getElementById('fullscreen-btn');
+  if(!btn)return;
+  const isFS=!!(document.fullscreenElement||document.webkitFullscreenElement);
+  btn.textContent=isFS?'⛶ Exit Full Screen':'⛶ Enter Full Screen';
+}
+function toggleFullscreen(){
+  const doc=document.documentElement;
+  if(document.fullscreenElement||document.webkitFullscreenElement){
+    if(document.exitFullscreen) document.exitFullscreen();
+    else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+  } else {
+    if(doc.requestFullscreen) doc.requestFullscreen();
+    else if(doc.webkitRequestFullscreen) doc.webkitRequestFullscreen();
+  }
+}
+(function initFullscreenBtn(){
+  const btn=document.getElementById('fullscreen-btn');
+  if(!btn)return;
+  btn.addEventListener('click',e=>{e.stopPropagation();toggleFullscreen();});
+  btn.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();toggleFullscreen();},{passive:false});
+  document.addEventListener('fullscreenchange',updateFullscreenBtn);
+  document.addEventListener('webkitfullscreenchange',updateFullscreenBtn);
+})();
