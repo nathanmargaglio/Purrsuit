@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Purrsuit</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { overflow: hidden; background: #1a1a2e; font-family: 'Nunito', sans-serif; touch-action: none; -webkit-user-select: none; user-select: none; }
+  canvas { display: block; touch-action: none; }
+
+  /* ===== BLOCKER / MENU ===== */
+  #blocker {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(20, 15, 10, 0.85);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer; transition: opacity 0.3s;
+  }
+  #blocker.hidden { opacity: 0; pointer-events: none; }
+  #blocker h1 {
+    font-family: 'Fredoka', sans-serif; font-size: 4rem;
+    color: #F7C948; text-shadow: 3px 3px 0 #D4730F;
+    margin-bottom: 0.5rem; letter-spacing: 2px;
+  }
+  #blocker .subtitle {
+    color: #E8C9A0; font-size: 1.2rem; margin-bottom: 2rem;
+    text-align: center; padding: 0 20px;
+  }
+  #blocker .prompt {
+    color: #fff; font-size: 1.4rem;
+    padding: 12px 32px; border-radius: 50px;
+    background: #E8822A; font-family: 'Fredoka', sans-serif;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @media (max-width: 600px) {
+    #blocker h1 { font-size: 2.8rem; }
+    #blocker .subtitle { font-size: 1rem; }
+    #blocker .prompt { font-size: 1.1rem; padding: 10px 24px; }
+  }
+  @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+  /* ===== HUD ===== */
+  #hud {
+    position: fixed; inset: 0; z-index: 10; pointer-events: none;
+    display: none;
+  }
+  #hud.active { display: block; }
+
+  .hud-top {
+    display: flex; justify-content: space-between;
+    padding: 16px 24px; color: #fff;
+    font-family: 'Fredoka', sans-serif;
+  }
+  .hud-day { font-size: 1.3rem; color: #F7C948; }
+  .hud-timer {
+    font-size: 2rem; color: #fff;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  }
+  .hud-timer.urgent { color: #FF4444; animation: timerPulse 0.5s ease-in-out infinite; }
+  @keyframes timerPulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.15);} }
+  .hud-score { font-size: 1.3rem; color: #F7C948; }
+
+  @media (max-width: 600px) {
+    .hud-top { padding: 10px 14px; }
+    .hud-day, .hud-score { font-size: 1rem; }
+    .hud-timer { font-size: 1.5rem; }
+  }
+
+  .hud-bottom-center {
+    position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 12px; align-items: center;
+  }
+  .hud-bag {
+    background: rgba(0,0,0,0.5); border-radius: 12px;
+    padding: 8px 20px; color: #fff; font-size: 1.1rem;
+    font-family: 'Fredoka', sans-serif;
+    border: 2px solid rgba(255,255,255,0.2);
+  }
+  .hud-bag.full { border-color: #FF6B35; color: #FF6B35; }
+  @media (max-width: 600px) {
+    .hud-bottom-center { bottom: 130px; }
+    .hud-bag { font-size: 0.9rem; padding: 6px 14px; }
+  }
+
+  .hud-center-msg {
+    position: absolute; top: 55%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: #F7C948; font-family: 'Fredoka', sans-serif;
+    font-size: 1.4rem; text-align: center;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+    opacity: 0; transition: opacity 0.3s;
+    padding: 0 20px;
+  }
+  .hud-center-msg.visible { opacity: 1; }
+  @media (max-width: 600px) {
+    .hud-center-msg { font-size: 1.1rem; top: 50%; }
+  }
+
+  .crosshair {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px; height: 24px; opacity: 0.6;
+  }
+  .crosshair::before, .crosshair::after {
+    content: ''; position: absolute; background: #fff;
+  }
+  .crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
+  .crosshair::after { width: 100%; height: 2px; top: 50%; transform: translateY(-50%); }
+
+  .catch-flash {
+    position: absolute; top: 40%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: #4ADE80; font-family: 'Fredoka', sans-serif;
+    font-size: 2rem; font-weight: 700;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    opacity: 0; pointer-events: none;
+  }
+  .catch-flash.show { animation: catchFlash 0.8s ease-out forwards; }
+  @keyframes catchFlash {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+    30% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -70%) scale(1); }
+  }
+
+  /* ===== MOBILE CONTROLS ===== */
+  #mobile-controls {
+    display: none; position: fixed; inset: 0; z-index: 15;
+    pointer-events: none;
+  }
+  #mobile-controls.active { display: block; }
+
+  .joystick-zone {
+    position: absolute; bottom: 20px; left: 20px;
+    width: 140px; height: 140px;
+    pointer-events: auto; touch-action: none;
+  }
+  .joystick-base {
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    border: 2px solid rgba(255,255,255,0.2);
+  }
+  .joystick-knob {
+    position: absolute;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    border: 2px solid rgba(255,255,255,0.4);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    transition: background 0.1s;
+  }
+  .joystick-knob.active { background: rgba(255,255,255,0.45); }
+
+  .touch-look-zone {
+    position: absolute; top: 0; right: 0;
+    width: 55%; height: 100%;
+    pointer-events: auto; touch-action: none;
+  }
+
+  .mobile-btn {
+    position: absolute; pointer-events: auto; touch-action: none;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fredoka', sans-serif; font-weight: 600;
+    color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.1s, background 0.1s;
+  }
+  .mobile-btn:active { transform: scale(0.9); }
+
+  .btn-swing {
+    bottom: 30px; right: 24px;
+    width: 80px; height: 80px;
+    background: rgba(232, 130, 42, 0.65);
+    border: 3px solid rgba(232, 130, 42, 0.8);
+    font-size: 2rem;
+  }
+  .btn-swing:active { background: rgba(232, 130, 42, 0.9); }
+
+  .btn-deposit {
+    bottom: 125px; right: 28px;
+    width: 64px; height: 64px;
+    background: rgba(74, 222, 128, 0.55);
+    border: 3px solid rgba(74, 222, 128, 0.7);
+    font-size: 1.5rem;
+    opacity: 0; transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .btn-deposit.visible { opacity: 1; pointer-events: auto; }
+  .btn-deposit:active { background: rgba(74, 222, 128, 0.85); }
+
+  /* ===== UPGRADE SCREEN ===== */
+  #upgrade-screen {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(20, 15, 10, 0.92);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 20px; overflow-y: auto;
+  }
+  #upgrade-screen.active { display: flex; }
+
+  .upgrade-panel {
+    background: #FFF5E6; border-radius: 20px;
+    padding: 32px 40px; max-width: 600px; width: 100%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  }
+  @media (max-width: 600px) {
+    .upgrade-panel { padding: 20px 18px; border-radius: 16px; }
+  }
+  .upgrade-title {
+    font-family: 'Fredoka', sans-serif; font-size: 2.2rem;
+    color: #4A3520; text-align: center; margin-bottom: 4px;
+  }
+  .upgrade-subtitle {
+    text-align: center; color: #8B7355; font-size: 1rem; margin-bottom: 20px;
+  }
+  .upgrade-currency {
+    text-align: center; font-family: 'Fredoka', sans-serif;
+    font-size: 1.4rem; color: #E8822A; margin-bottom: 24px;
+  }
+  .upgrade-cards { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+  .upgrade-card {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #FFF; border-radius: 12px; padding: 14px 18px;
+    border: 2px solid #E8DCC8; transition: border-color 0.2s;
+  }
+  .upgrade-card:hover { border-color: #E8822A; }
+  .upgrade-card.disabled { opacity: 0.5; }
+  .upgrade-info { flex: 1; }
+  .upgrade-name {
+    font-family: 'Fredoka', sans-serif; font-size: 1.1rem;
+    color: #4A3520; display: flex; align-items: center; gap: 8px;
+  }
+  .upgrade-level { font-size: 0.8rem; color: #B8956A; }
+  .upgrade-desc { font-size: 0.85rem; color: #8B7355; margin-top: 2px; }
+  .upgrade-btn {
+    background: #E8822A; color: #FFF; border: none;
+    font-family: 'Fredoka', sans-serif; font-size: 1rem;
+    padding: 8px 18px; border-radius: 8px; cursor: pointer;
+    transition: background 0.2s; white-space: nowrap;
+  }
+  .upgrade-btn:hover { background: #D4730F; }
+  .upgrade-btn.cant-afford { background: #C4B49A; cursor: default; }
+
+  .start-day-btn {
+    display: block; margin: 0 auto;
+    background: #4ADE80; color: #1a4a2a; border: none;
+    font-family: 'Fredoka', sans-serif; font-size: 1.3rem;
+    padding: 14px 40px; border-radius: 50px; cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .start-day-btn:hover { background: #34C96A; transform: scale(1.03); }
+
+  .day-intro {
+    position: fixed; top: 30%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Fredoka', sans-serif; font-size: 3rem;
+    color: #F7C948; text-shadow: 3px 3px 6px rgba(0,0,0,0.6);
+    z-index: 50; pointer-events: none;
+    opacity: 0; display: none;
+  }
+  .day-intro.show { display: block; animation: dayIntro 2s ease-out forwards; }
+  @keyframes dayIntro {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    15% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    30% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -60%) scale(1); }
+  }
+  @media (max-width: 600px) {
+    .day-intro { font-size: 2.2rem; }
+    .upgrade-title { font-size: 1.7rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="blocker">
+  <h1>🐱 PURRSUIT</h1>
+  <div class="subtitle" id="blocker-subtitle">Catch 'em all — one day at a time</div>
+  <div class="prompt" id="blocker-prompt">Click to Start</div>
+</div>
+
+<div id="hud">
+  <div class="hud-top">
+    <div class="hud-day">Day <span id="day-num">1</span></div>
+    <div class="hud-timer" id="timer">1:00</div>
+    <div class="hud-score">Score: <span id="total-score">0</span></div>
+  </div>
+  <div class="crosshair"></div>
+  <div class="hud-center-msg" id="center-msg"></div>
+  <div class="catch-flash" id="catch-flash">Caught!</div>
+  <div class="hud-bottom-center">
+    <div class="hud-bag" id="bag-display">🐱 0 / 1</div>
+  </div>
+</div>
+
+<div id="mobile-controls">
+  <div class="joystick-zone" id="joystick-zone">
+    <div class="joystick-base"></div>
+    <div class="joystick-knob" id="joystick-knob"></div>
+  </div>
+  <div class="touch-look-zone" id="touch-look-zone"></div>
+  <div class="mobile-btn btn-swing" id="btn-swing">🥅</div>
+  <div class="mobile-btn btn-deposit" id="btn-deposit">📦</div>
+</div>
+
+<div class="day-intro" id="day-intro"></div>
+
+<div id="upgrade-screen">
+  <div class="upgrade-panel">
+    <div class="upgrade-title" id="upgrade-title">Day 1 Complete!</div>
+    <div class="upgrade-subtitle" id="upgrade-stats">You caught 0 cats today</div>
+    <div class="upgrade-currency">🐱 <span id="currency-display">0</span> cats to spend</div>
+    <div class="upgrade-cards" id="upgrade-cards"></div>
+    <button class="start-day-btn" id="start-day-btn">Start Next Day →</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ===================== PLATFORM DETECTION =====================
+const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  || ('ontouchstart' in window && window.innerWidth < 1024);
+
+// ===================== CONSTANTS =====================
+const ROOM_RADIUS = 10;
+const ROOM_HEIGHT = 5;
+const DAY_DURATION = 60;
+const CAT_COLORS = [
+  0xE8822A, 0x2A2A2A, 0xF0EDE8, 0x777777, 0xD4956A,
+  0xC4B49A, 0x333333, 0xC46A32, 0x6B4226, 0xAAAAAA,
+];
+
+// ===================== GAME STATE =====================
+const state = {
+  phase: 'MENU',
+  day: 1,
+  timeLeft: DAY_DURATION,
+  dayScore: 0,
+  totalScore: 0,
+  currency: 0,
+  catsInBag: 0,
+  upgrades: { netSize: 0, walkSpeed: 0, bagSize: 0 },
+  paused: false,
+};
+
+function getNetRange() { return 3.5 + state.upgrades.netSize * 1.0; }
+function getNetAngle() { return 0.45 + state.upgrades.netSize * 0.1; }
+function getMoveSpeed() { return 4.0 + state.upgrades.walkSpeed * 1.0; }
+function getMaxBag() { return 1 + state.upgrades.bagSize; }
+function getUpgradeCost(type) {
+  const level = state.upgrades[type];
+  return (level + 1) * 2 + Math.floor(level * 0.5);
+}
+function getCatCount() { return Math.min(8 + state.day - 1, 16); }
+
+// ===================== THREE.JS SETUP =====================
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x2a1f14);
+scene.fog = new THREE.Fog(0x2a1f14, 12, 22);
+
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 1.5, 0);
+scene.add(camera);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+// Lighting
+scene.add(new THREE.AmbientLight(0xFFF5E0, 0.4));
+scene.add(new THREE.HemisphereLight(0xFFE8C0, 0x806040, 0.3));
+
+const mainLight = new THREE.DirectionalLight(0xFFE0B0, 0.8);
+mainLight.position.set(3, 8, 2);
+mainLight.castShadow = true;
+mainLight.shadow.mapSize.width = 1024;
+mainLight.shadow.mapSize.height = 1024;
+mainLight.shadow.camera.near = 0.5;
+mainLight.shadow.camera.far = 25;
+mainLight.shadow.camera.left = -12;
+mainLight.shadow.camera.right = 12;
+mainLight.shadow.camera.top = 12;
+mainLight.shadow.camera.bottom = -12;
+scene.add(mainLight);
+
+const wl1 = new THREE.PointLight(0xFFAA44, 0.5, 15);
+wl1.position.set(5, 3, 3); scene.add(wl1);
+const wl2 = new THREE.PointLight(0xFFAA44, 0.5, 15);
+wl2.position.set(-4, 3, -5); scene.add(wl2);
+
+// ===================== ROOM =====================
+function createRoom() {
+  const floorCanvas = document.createElement('canvas');
+  floorCanvas.width = floorCanvas.height = 256;
+  const fctx = floorCanvas.getContext('2d');
+  const ts = 32;
+  for (let x = 0; x < 256; x += ts)
+    for (let y = 0; y < 256; y += ts) {
+      fctx.fillStyle = ((x / ts + y / ts) % 2 === 0) ? '#C49A6C' : '#B8895C';
+      fctx.fillRect(x, y, ts, ts);
+    }
+  const floorTex = new THREE.CanvasTexture(floorCanvas);
+  floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping;
+  floorTex.repeat.set(6, 6);
+
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(ROOM_RADIUS, 48),
+    new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.8 }));
+  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+  const walls = new THREE.Mesh(new THREE.CylinderGeometry(ROOM_RADIUS, ROOM_RADIUS, ROOM_HEIGHT, 48, 1, true),
+    new THREE.MeshStandardMaterial({ color: 0xE8DCC8, roughness: 0.9, side: THREE.BackSide }));
+  walls.position.y = ROOM_HEIGHT / 2; scene.add(walls);
+
+  const ceil = new THREE.Mesh(new THREE.CircleGeometry(ROOM_RADIUS, 48),
+    new THREE.MeshStandardMaterial({ color: 0xD4C9B8, roughness: 1 }));
+  ceil.rotation.x = Math.PI / 2; ceil.position.y = ROOM_HEIGHT; scene.add(ceil);
+
+  const trim = new THREE.Mesh(new THREE.CylinderGeometry(ROOM_RADIUS - 0.01, ROOM_RADIUS - 0.01, 0.3, 48, 1, true),
+    new THREE.MeshStandardMaterial({ color: 0x8B7355, side: THREE.BackSide }));
+  trim.position.y = 0.15; scene.add(trim);
+}
+
+// ===================== CRATE =====================
+let crateMesh;
+function createCrate() {
+  const group = new THREE.Group();
+  const box = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.7, 0.9),
+    new THREE.MeshStandardMaterial({ color: 0x9B7340, roughness: 0.8 }));
+  box.position.y = 0.35; box.castShadow = true; box.receiveShadow = true; group.add(box);
+
+  const slatMat = new THREE.MeshBasicMaterial({ color: 0x7A5A2E });
+  for (let i = -1; i <= 1; i += 2) {
+    const slat = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.04, 0.03), slatMat);
+    slat.position.set(0, 0.35 + i * 0.15, 0.46); group.add(slat);
+    const s2 = slat.clone(); s2.position.z = -0.46; group.add(s2);
+  }
+
+  const ring = new THREE.Mesh(new THREE.RingGeometry(1.2, 1.4, 32),
+    new THREE.MeshBasicMaterial({ color: 0xF7C948, transparent: true, opacity: 0.3, side: THREE.DoubleSide }));
+  ring.rotation.x = -Math.PI / 2; ring.position.y = 0.01; group.add(ring);
+  scene.add(group); crateMesh = group;
+}
+
+// ===================== CAT SYSTEM =====================
+const cats = [];
+function randomRange(a, b) { return a + Math.random() * (b - a); }
+
+function createCatMesh(color, size) {
+  const g = new THREE.Group();
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.22 * size, 8, 6), m);
+  body.scale.set(1, 0.85, 1.4); body.position.y = 0.22 * size; body.castShadow = true; g.add(body);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.16 * size, 8, 6), m);
+  head.position.set(0, 0.32 * size, 0.28 * size); head.castShadow = true; g.add(head);
+
+  const earGeo = new THREE.ConeGeometry(0.055 * size, 0.11 * size, 4);
+  [-1, 1].forEach(s => {
+    const ear = new THREE.Mesh(earGeo, m);
+    ear.position.set(s * 0.08 * size, 0.46 * size, 0.26 * size); g.add(ear);
+  });
+
+  const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.025 * size, 0.015 * size, 0.35 * size, 5), m);
+  tail.position.set(0, 0.3 * size, -0.3 * size); tail.rotation.x = -0.6; g.add(tail);
+
+  const eyeMat = new THREE.MeshBasicMaterial({ color: 0xCCFF44 });
+  const pupilMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+  [-1, 1].forEach(s => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.03 * size, 6, 4), eyeMat);
+    eye.position.set(s * 0.06 * size, 0.35 * size, 0.42 * size); g.add(eye);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.018 * size, 4, 4), pupilMat);
+    pupil.position.set(s * 0.06 * size, 0.35 * size, 0.445 * size); g.add(pupil);
+  });
+  return g;
+}
+
+function spawnCat() {
+  const angle = Math.random() * Math.PI * 2;
+  const r = randomRange(6, ROOM_RADIUS - 1.5);
+  const color = CAT_COLORS[Math.floor(Math.random() * CAT_COLORS.length)];
+  const size = randomRange(0.7, 1.3);
+  const mesh = createCatMesh(color, size);
+  mesh.position.set(Math.cos(angle) * r, 0, Math.sin(angle) * r);
+  mesh.rotation.y = Math.random() * Math.PI * 2;
+  scene.add(mesh);
+  cats.push({
+    mesh, speed: randomRange(1.0, 2.5), turnSpeed: randomRange(1.5, 4),
+    fleeDistance: randomRange(3.5, 7), fleeStrength: randomRange(0.4, 0.95),
+    wanderAngle: Math.random() * Math.PI * 2, wanderTimer: randomRange(0.5, 3),
+    velocity: new THREE.Vector3(), caught: false,
+    soundTimer: randomRange(2, 8), size,
+    bobPhase: Math.random() * Math.PI * 2, idleTimer: 0, isIdle: false,
+  });
+}
+
+function updateCat(cat, dt, playerPos) {
+  if (cat.caught) return;
+
+  if (cat.isIdle) {
+    cat.idleTimer -= dt;
+    if (cat.idleTimer <= 0) cat.isIdle = false;
+    const dist = new THREE.Vector3(cat.mesh.position.x, 0, cat.mesh.position.z).distanceTo(playerPos);
+    if (dist < cat.fleeDistance * 0.6) cat.isIdle = false;
+    else {
+      cat.velocity.multiplyScalar(0.9);
+      cat.mesh.position.x += cat.velocity.x * dt;
+      cat.mesh.position.z += cat.velocity.z * dt;
+      clampToRoom(cat.mesh.position, ROOM_RADIUS - 0.8);
+      return;
+    }
+  }
+
+  cat.wanderTimer -= dt;
+  if (cat.wanderTimer <= 0) {
+    cat.wanderAngle += randomRange(-Math.PI * 0.6, Math.PI * 0.6);
+    cat.wanderTimer = randomRange(1, 4);
+    if (Math.random() < 0.25) { cat.isIdle = true; cat.idleTimer = randomRange(0.5, 2); }
+  }
+
+  const wanderDir = new THREE.Vector3(Math.cos(cat.wanderAngle), 0, Math.sin(cat.wanderAngle));
+  const catPos = new THREE.Vector3(cat.mesh.position.x, 0, cat.mesh.position.z);
+  const distToPlayer = catPos.distanceTo(playerPos);
+  const fleeDir = catPos.clone().sub(playerPos).normalize();
+  let fleeWeight = distToPlayer < cat.fleeDistance ? Math.pow(1 - distToPlayer / cat.fleeDistance, 0.8) * cat.fleeStrength : 0;
+
+  const moveDir = wanderDir.multiplyScalar(1 - fleeWeight).add(fleeDir.multiplyScalar(fleeWeight));
+  if (moveDir.length() > 0.001) moveDir.normalize();
+  cat.velocity.lerp(moveDir.multiplyScalar(cat.speed * (1 + fleeWeight * 0.5)), Math.min(cat.turnSpeed * dt, 1));
+
+  cat.mesh.position.x += cat.velocity.x * dt;
+  cat.mesh.position.z += cat.velocity.z * dt;
+  clampToRoom(cat.mesh.position, ROOM_RADIUS - 0.8);
+
+  if (cat.velocity.length() > 0.05) {
+    const ta = Math.atan2(cat.velocity.x, cat.velocity.z);
+    let diff = ta - cat.mesh.rotation.y;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    cat.mesh.rotation.y += diff * Math.min(cat.turnSpeed * dt * 2, 1);
+  }
+
+  cat.bobPhase += dt * cat.speed * 8;
+  cat.mesh.position.y = cat.velocity.length() > 0.2 ? Math.abs(Math.sin(cat.bobPhase)) * 0.04 * cat.size : 0;
+
+  cat.soundTimer -= dt;
+  if (cat.soundTimer <= 0) { playCatSound(cat.mesh.position, cat.size); cat.soundTimer = randomRange(4, 14); }
+}
+
+function clampToRoom(pos, maxR) {
+  const r = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
+  if (r > maxR) { pos.x *= maxR / r; pos.z *= maxR / r; }
+}
+
+function clearCats() { for (const c of cats) scene.remove(c.mesh); cats.length = 0; }
+
+// ===================== NET =====================
+const netGroup = new THREE.Group();
+let isSwinging = false, swingTime = 0, canSwing = true, swingChecked = false;
+const SWING_DURATION = 0.35;
+
+function createNet() {
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.014, 0.7, 6),
+    new THREE.MeshStandardMaterial({ color: 0x8B5A2B }));
+  handle.rotation.x = Math.PI / 2.3; handle.position.set(0, -0.05, -0.25); netGroup.add(handle);
+
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.012, 8, 20),
+    new THREE.MeshStandardMaterial({ color: 0x888888 }));
+  rim.position.set(0, 0.12, -0.65); netGroup.add(rim);
+
+  const nMat = new THREE.MeshBasicMaterial({ color: 0xDDDDDD, transparent: true, opacity: 0.35 });
+  for (let i = 0; i < 4; i++) {
+    const line = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.32, 3), nMat);
+    line.rotation.z = (i / 4) * Math.PI; line.position.set(0, 0.12, -0.65); netGroup.add(line);
+  }
+  netGroup.position.set(0.45, -0.4, 0); camera.add(netGroup);
+}
+
+function startSwing() {
+  if (!canSwing || isSwinging || state.phase !== 'PLAYING') return;
+  isSwinging = true; swingTime = 0; canSwing = false; swingChecked = false;
+}
+
+function updateNet(dt) {
+  if (!isSwinging) return;
+  swingTime += dt;
+  const p = Math.min(swingTime / SWING_DURATION, 1);
+  netGroup.rotation.x = -Math.sin(p * Math.PI) * 0.9;
+  if (p >= 0.35 && !swingChecked) { checkCapture(); swingChecked = true; }
+  if (p >= 1) { isSwinging = false; netGroup.rotation.x = 0; setTimeout(() => { canSwing = true; }, 100); }
+}
+
+// ===================== CAPTURE =====================
+function checkCapture() {
+  if (state.catsInBag >= getMaxBag()) { showCenterMsg("Bag is full! Return to crate"); return; }
+  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+  forward.y = 0; if (forward.length() > 0.001) forward.normalize();
+  const playerPos = new THREE.Vector3(camera.position.x, 0, camera.position.z);
+  const range = getNetRange(), angle = getNetAngle();
+  let closest = null, closestDist = Infinity;
+  for (const cat of cats) {
+    if (cat.caught) continue;
+    const toCat = new THREE.Vector3(cat.mesh.position.x, 0, cat.mesh.position.z).sub(playerPos);
+    const dist = toCat.length();
+    if (dist > range) continue;
+    if (dist > 0.01) { toCat.normalize(); if (Math.acos(Math.min(forward.dot(toCat), 1)) > angle) continue; }
+    if (dist < closestDist) { closestDist = dist; closest = cat; }
+  }
+  if (closest) catchCat(closest);
+}
+
+function catchCat(cat) {
+  cat.caught = true; scene.remove(cat.mesh);
+  state.catsInBag++; showCatchFlash(); playCatchSound(); updateBagDisplay();
+}
+
+function isNearCrate() {
+  const dx = camera.position.x, dz = camera.position.z;
+  return Math.sqrt(dx * dx + dz * dz) < 2.0;
+}
+
+function depositCats() {
+  if (state.catsInBag === 0) return;
+  const count = state.catsInBag;
+  state.dayScore += count; state.totalScore += count; state.currency += count; state.catsInBag = 0;
+  showCenterMsg(`+${count} cat${count > 1 ? 's' : ''} deposited!`);
+  playDepositSound(); updateBagDisplay(); updateScoreDisplay();
+}
+
+// ===================== SOUND =====================
+let audioCtx;
+function getAudioCtx() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
+
+function playCatSound(position, size) {
+  try {
+    const ctx = getAudioCtx();
+    const dist = camera.position.distanceTo(position);
+    if (dist > 12) return;
+    const volume = Math.max(0, 0.08 * (1 - dist / 12));
+    const basePitch = (1.5 - (size || 1) * 0.5) * 400;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    const type = Math.random();
+    if (type < 0.5) {
+      osc.frequency.setValueAtTime(basePitch * 1.2, t);
+      osc.frequency.exponentialRampToValueAtTime(basePitch * 0.8, t + 0.15);
+      osc.frequency.exponentialRampToValueAtTime(basePitch * 1.4, t + 0.2);
+      osc.frequency.exponentialRampToValueAtTime(basePitch * 0.5, t + 0.4);
+      gain.gain.setValueAtTime(volume, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+      osc.start(t); osc.stop(t + 0.45);
+    } else if (type < 0.8) {
+      osc.frequency.setValueAtTime(basePitch * 1.5, t);
+      osc.frequency.exponentialRampToValueAtTime(basePitch * 0.9, t + 0.15);
+      gain.gain.setValueAtTime(volume * 0.7, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+      osc.start(t); osc.stop(t + 0.2);
+    } else {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(basePitch * 0.15, t);
+      gain.gain.setValueAtTime(volume * 0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+      osc.start(t); osc.stop(t + 0.6);
+    }
+  } catch (e) {}
+}
+
+function playCatchSound() {
+  try {
+    const ctx = getAudioCtx(), t = ctx.currentTime;
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(523, t);
+    osc.frequency.setValueAtTime(659, t + 0.08);
+    osc.frequency.setValueAtTime(784, t + 0.16);
+    gain.gain.setValueAtTime(0.12, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+    osc.start(t); osc.stop(t + 0.3);
+  } catch (e) {}
+}
+
+function playDepositSound() {
+  try {
+    const ctx = getAudioCtx(), t = ctx.currentTime;
+    [523, 659, 784, 1047].forEach((f, i) => {
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(f, t + i * 0.07);
+      gain.gain.setValueAtTime(0.1, t + i * 0.07);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.07 + 0.2);
+      osc.start(t + i * 0.07); osc.stop(t + i * 0.07 + 0.2);
+    });
+  } catch (e) {}
+}
+
+// ===================== DESKTOP CONTROLS =====================
+const keys = {};
+let yaw = 0, pitch = 0, pointerLocked = false;
+
+document.addEventListener('keydown', (e) => { keys[e.code] = true; });
+document.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+document.addEventListener('mousemove', (e) => {
+  if (!pointerLocked || isMobile) return;
+  yaw -= e.movementX * 0.002;
+  pitch -= e.movementY * 0.002;
+  pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+});
+
+document.addEventListener('mousedown', (e) => {
+  if (e.button === 0 && pointerLocked && state.phase === 'PLAYING' && !isMobile) startSwing();
+});
+
+document.addEventListener('pointerlockchange', () => {
+  pointerLocked = document.pointerLockElement === renderer.domElement;
+  if (!pointerLocked && state.phase === 'PLAYING' && !isMobile) {
+    state.paused = true;
+    const blocker = document.getElementById('blocker');
+    blocker.classList.remove('hidden');
+    document.getElementById('blocker-prompt').textContent = 'Click to Resume';
+    document.getElementById('blocker-subtitle').textContent = 'Game paused';
+  }
+});
+
+function requestPointerLock() { if (!isMobile) renderer.domElement.requestPointerLock(); }
+
+// ===================== MOBILE CONTROLS =====================
+const mobileInput = { moveX: 0, moveY: 0 };
+let joystickTouchId = null, lookTouchData = null;
+
+function setupMobileControls() {
+  const joystickZone = document.getElementById('joystick-zone');
+  const joystickKnob = document.getElementById('joystick-knob');
+  const lookZone = document.getElementById('touch-look-zone');
+  const btnSwing = document.getElementById('btn-swing');
+  const btnDeposit = document.getElementById('btn-deposit');
+
+  function getJoyCenter() {
+    const r = joystickZone.getBoundingClientRect();
+    return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, maxR: r.width / 2 - 28 };
+  }
+
+  function updateJoystick(touch) {
+    const { cx, cy, maxR } = getJoyCenter();
+    let dx = touch.clientX - cx, dy = touch.clientY - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > maxR) { dx *= maxR / dist; dy *= maxR / dist; }
+    joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    mobileInput.moveX = dx / maxR;
+    mobileInput.moveY = dy / maxR;
+  }
+
+  joystickZone.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (joystickTouchId !== null) return;
+    joystickTouchId = e.changedTouches[0].identifier;
+    updateJoystick(e.changedTouches[0]);
+    joystickKnob.classList.add('active');
+  }, { passive: false });
+
+  joystickZone.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    for (const t of e.changedTouches) if (t.identifier === joystickTouchId) updateJoystick(t);
+  }, { passive: false });
+
+  const endJoy = (e) => {
+    for (const t of e.changedTouches) {
+      if (t.identifier === joystickTouchId) {
+        joystickTouchId = null;
+        mobileInput.moveX = 0; mobileInput.moveY = 0;
+        joystickKnob.style.transform = 'translate(-50%, -50%)';
+        joystickKnob.classList.remove('active');
+      }
+    }
+  };
+  joystickZone.addEventListener('touchend', endJoy);
+  joystickZone.addEventListener('touchcancel', endJoy);
+
+  // Look zone
+  lookZone.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (lookTouchData) return;
+    const t = e.changedTouches[0];
+    lookTouchData = { id: t.identifier, lastX: t.clientX, lastY: t.clientY };
+  }, { passive: false });
+
+  lookZone.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      if (lookTouchData && t.identifier === lookTouchData.id) {
+        yaw -= (t.clientX - lookTouchData.lastX) * 0.004;
+        pitch -= (t.clientY - lookTouchData.lastY) * 0.004;
+        pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+        lookTouchData.lastX = t.clientX;
+        lookTouchData.lastY = t.clientY;
+      }
+    }
+  }, { passive: false });
+
+  const endLook = (e) => {
+    for (const t of e.changedTouches)
+      if (lookTouchData && t.identifier === lookTouchData.id) lookTouchData = null;
+  };
+  lookZone.addEventListener('touchend', endLook);
+  lookZone.addEventListener('touchcancel', endLook);
+
+  // Buttons
+  btnSwing.addEventListener('touchstart', (e) => { e.preventDefault(); startSwing(); }, { passive: false });
+  btnDeposit.addEventListener('touchstart', (e) => { e.preventDefault(); if (isNearCrate()) depositCats(); }, { passive: false });
+}
+
+// ===================== PLAYER UPDATE =====================
+function updatePlayer(dt) {
+  const speed = getMoveSpeed();
+  const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+  const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+  const move = new THREE.Vector3();
+
+  if (isMobile) {
+    if (Math.abs(mobileInput.moveX) > 0.1 || Math.abs(mobileInput.moveY) > 0.1) {
+      move.add(forward.clone().multiplyScalar(-mobileInput.moveY));
+      move.add(right.clone().multiplyScalar(mobileInput.moveX));
+    }
+  } else {
+    if (keys['KeyW'] || keys['ArrowUp']) move.add(forward);
+    if (keys['KeyS'] || keys['ArrowDown']) move.sub(forward);
+    if (keys['KeyA'] || keys['ArrowLeft']) move.sub(right);
+    if (keys['KeyD'] || keys['ArrowRight']) move.add(right);
+  }
+
+  if (move.length() > 0) {
+    move.normalize().multiplyScalar(speed * dt);
+    camera.position.x += move.x;
+    camera.position.z += move.z;
+  }
+
+  clampToRoom(camera.position, ROOM_RADIUS - 0.5);
+  camera.position.y = 1.5;
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = yaw;
+  camera.rotation.x = pitch;
+
+  // Desktop deposit
+  if (!isMobile && keys['KeyE'] && isNearCrate()) depositCats();
+
+  // Mobile deposit button visibility
+  if (isMobile) {
+    document.getElementById('btn-deposit').classList.toggle('visible', isNearCrate() && state.catsInBag > 0);
+  }
+
+  // Center messages
+  const nearCrate = isNearCrate();
+  if (!isMobile) {
+    if (nearCrate && state.catsInBag > 0) showCenterMsg("Press E to deposit");
+    else if (state.catsInBag >= getMaxBag()) showCenterMsg("Bag full! Return to crate");
+    else hideCenterMsg();
+  } else {
+    if (state.catsInBag >= getMaxBag() && !nearCrate) showCenterMsg("Bag full! Return to crate");
+    else hideCenterMsg();
+  }
+}
+
+// ===================== UI HELPERS =====================
+function updateTimerDisplay() {
+  const el = document.getElementById('timer');
+  const s = Math.ceil(state.timeLeft);
+  el.textContent = `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+  el.classList.toggle('urgent', s <= 10);
+}
+function updateBagDisplay() {
+  const el = document.getElementById('bag-display');
+  el.textContent = `🐱 ${state.catsInBag} / ${getMaxBag()}`;
+  el.classList.toggle('full', state.catsInBag >= getMaxBag());
+}
+function updateScoreDisplay() { document.getElementById('total-score').textContent = state.totalScore; }
+function showCenterMsg(t) { const el = document.getElementById('center-msg'); el.textContent = t; el.classList.add('visible'); }
+function hideCenterMsg() { document.getElementById('center-msg').classList.remove('visible'); }
+function showCatchFlash() { const el = document.getElementById('catch-flash'); el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); }
+function showDayIntro() { const el = document.getElementById('day-intro'); el.textContent = `Day ${state.day}`; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); }
+
+// ===================== UPGRADE SCREEN =====================
+function showUpgradeScreen() {
+  document.getElementById('upgrade-screen').classList.add('active');
+  document.getElementById('upgrade-title').textContent = `Day ${state.day} Complete!`;
+  document.getElementById('upgrade-stats').textContent = `You caught ${state.dayScore} cat${state.dayScore !== 1 ? 's' : ''} today`;
+  document.getElementById('currency-display').textContent = state.currency;
+  renderUpgradeCards();
+}
+
+function renderUpgradeCards() {
+  const container = document.getElementById('upgrade-cards');
+  const upgrades = [
+    { key: 'netSize', name: '🥅 Net Size', desc: () => `Range: ${getNetRange().toFixed(1)} → ${(getNetRange() + 1.0).toFixed(1)}` },
+    { key: 'walkSpeed', name: '👟 Walk Speed', desc: () => `Speed: ${getMoveSpeed().toFixed(1)} → ${(getMoveSpeed() + 1.0).toFixed(1)}` },
+    { key: 'bagSize', name: '🎒 Bag Size', desc: () => `Capacity: ${getMaxBag()} → ${getMaxBag() + 1}` },
+  ];
+  container.innerHTML = '';
+  for (const up of upgrades) {
+    const cost = getUpgradeCost(up.key);
+    const canAfford = state.currency >= cost;
+    const card = document.createElement('div');
+    card.className = 'upgrade-card' + (!canAfford ? ' disabled' : '');
+    card.innerHTML = `
+      <div class="upgrade-info">
+        <div class="upgrade-name">${up.name} <span class="upgrade-level">Lv ${state.upgrades[up.key]}</span></div>
+        <div class="upgrade-desc">${up.desc()}</div>
+      </div>
+      <button class="upgrade-btn ${!canAfford ? 'cant-afford' : ''}">${cost} 🐱</button>`;
+    if (canAfford) {
+      card.querySelector('.upgrade-btn').addEventListener('click', () => {
+        state.currency -= cost;
+        state.upgrades[up.key]++;
+        document.getElementById('currency-display').textContent = state.currency;
+        renderUpgradeCards();
+      });
+    }
+    container.appendChild(card);
+  }
+}
+function hideUpgradeScreen() { document.getElementById('upgrade-screen').classList.remove('active'); }
+
+// ===================== GAME LOGIC =====================
+function startDay() {
+  state.phase = 'PLAYING'; state.paused = false;
+  state.timeLeft = DAY_DURATION; state.dayScore = 0; state.catsInBag = 0;
+  camera.position.set(0, 1.5, 0); yaw = 0; pitch = 0;
+
+  clearCats();
+  for (let i = 0; i < getCatCount(); i++) spawnCat();
+
+  document.getElementById('hud').classList.add('active');
+  if (isMobile) document.getElementById('mobile-controls').classList.add('active');
+  document.getElementById('day-num').textContent = state.day;
+  updateBagDisplay(); updateScoreDisplay(); updateTimerDisplay();
+  showDayIntro(); hideCenterMsg(); hideUpgradeScreen();
+  if (!isMobile) requestPointerLock();
+}
+
+function endDay() {
+  state.phase = 'DAY_END';
+  state.dayScore += state.catsInBag; state.totalScore += state.catsInBag;
+  state.currency += state.catsInBag; state.catsInBag = 0;
+  document.getElementById('hud').classList.remove('active');
+  document.getElementById('mobile-controls').classList.remove('active');
+  if (!isMobile) document.exitPointerLock();
+  document.getElementById('blocker').classList.add('hidden');
+  updateScoreDisplay(); showUpgradeScreen();
+}
+
+document.getElementById('start-day-btn').addEventListener('click', () => { state.day++; startDay(); });
+
+// ===================== BLOCKER =====================
+function handleBlockerActivation() {
+  if (state.phase === 'MENU') {
+    document.getElementById('blocker').classList.add('hidden');
+    startDay();
+  } else if (state.phase === 'PLAYING' && !isMobile) {
+    state.paused = false;
+    requestPointerLock();
+    document.getElementById('blocker').classList.add('hidden');
+  }
+}
+
+document.getElementById('blocker').addEventListener('click', handleBlockerActivation);
+document.getElementById('blocker').addEventListener('touchend', (e) => { e.preventDefault(); handleBlockerActivation(); });
+
+if (isMobile) {
+  document.getElementById('blocker-prompt').textContent = 'Tap to Start';
+}
+
+// Prevent default touch on canvas
+renderer.domElement.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+renderer.domElement.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+
+// ===================== MAIN LOOP =====================
+let lastTime = 0;
+createRoom(); createCrate(); createNet();
+if (isMobile) setupMobileControls();
+
+function gameLoop(time) {
+  requestAnimationFrame(gameLoop);
+  const dt = Math.min((time - lastTime) / 1000, 0.05);
+  lastTime = time;
+
+  const canUpdate = state.phase === 'PLAYING' && (isMobile || pointerLocked) && !state.paused;
+  if (canUpdate) {
+    state.timeLeft -= dt;
+    if (state.timeLeft <= 0) { state.timeLeft = 0; endDay(); }
+    updateTimerDisplay(); updatePlayer(dt);
+    const pp = new THREE.Vector3(camera.position.x, 0, camera.position.z);
+    for (const cat of cats) updateCat(cat, dt, pp);
+    updateNet(dt);
+    if (crateMesh) {
+      const ring = crateMesh.children[crateMesh.children.length - 1];
+      ring.material.opacity = 0.2 + Math.sin(time * 0.003) * 0.1;
+    }
+  }
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(gameLoop);
+
+// ===================== RESIZE =====================
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
