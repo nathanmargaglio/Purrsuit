@@ -2,7 +2,7 @@
 function startDay(){
   state.phase='PLAYING'; state.paused=false;
   state.timeLeft=DAY_DURATION; state.dayScore=0; state.catsInBag=0;
-  state.expanding=false; state.cannonMode=false; expandAnim=null; camShakeIntensity=0;
+  state.expanding=false; state.cannonMode=false; state.vacuumMode=false; expandAnim=null; camShakeIntensity=0;
 
   state.activeDayRing = state.progressRing;
 
@@ -19,7 +19,11 @@ function startDay(){
   updateBagDisplay();updateScoreDisplay();updateTimerDisplay();updateRingDisplay();
   const ct=document.getElementById('cannon-toggle');
   if(ct){ct.style.display=state.upgrades.catCannon?'block':'none';ct.classList.remove('active');}
+  const vt=document.getElementById('vacuum-toggle');
+  if(vt){vt.style.display=state.upgrades.catVacuum?'block':'none';vt.classList.remove('active');}
   netGroup.visible=true;
+  vacuumGroup.visible=false;
+  vacuumActive=false;
   showDayIntro();hideCenterMsg();hideUpgradeScreen();
   if(!isMobile) requestPointerLock();
   startBgMusic();
@@ -27,8 +31,10 @@ function startDay(){
 
 function endDay(){
   state.phase='DAY_END';
-  state.catsInBag=0; state.cannonMode=false;
+  state.catsInBag=0; state.cannonMode=false; state.vacuumMode=false;
+  vacuumActive=false;
   clearProjectileCats();
+  clearVacuumParticles();
   document.getElementById('hud').classList.remove('active');
   document.getElementById('mobile-controls').classList.remove('active');
   if(!isMobile) document.exitPointerLock();
@@ -53,10 +59,12 @@ renderer.domElement.addEventListener('touchmove',e=>e.preventDefault(),{passive:
 buildRoomUpToRing(0);
 createCrate();
 createNet();
+createVacuum();
 if(isMobile) setupMobileControls();
 loadSoundManifest();
 loadCatModels();
 document.getElementById('cannon-toggle').addEventListener('click',()=>toggleCannonMode());
+document.getElementById('vacuum-toggle').addEventListener('click',()=>toggleVacuumMode());
 
 let lastTime=0;
 function gameLoop(time){
@@ -72,6 +80,7 @@ function gameLoop(time){
     const pp=new THREE.Vector3(camera.position.x,0,camera.position.z);
     for(const cat of cats) updateCat(cat,dt,pp);
     updateNet(dt);
+    updateVacuum(dt);
     updateProjectileCats(dt);
     if(!state.expanding) updateRingDisplay();
     if(crateMesh){const r=crateMesh.children[crateMesh.children.length-1];r.material.opacity=0.2+Math.sin(time*0.003)*0.1;}
