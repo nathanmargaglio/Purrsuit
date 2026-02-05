@@ -155,9 +155,9 @@
   }
   .joystick-knob.active { background: rgba(255,255,255,0.45); }
 
-  .touch-look-zone {
-    position: absolute; top: 0; right: 0;
-    width: 55%; height: 100%;
+  .joystick-zone-right {
+    position: absolute; bottom: 20px; right: 20px;
+    width: 140px; height: 140px;
     pointer-events: auto; touch-action: none;
   }
 
@@ -173,16 +173,16 @@
   .mobile-btn:active { transform: scale(0.9); }
 
   .btn-swing {
-    bottom: 30px; right: 24px;
-    width: 80px; height: 80px;
+    bottom: 175px; right: 22px;
+    width: 72px; height: 72px;
     background: rgba(232, 130, 42, 0.65);
     border: 3px solid rgba(232, 130, 42, 0.8);
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
   .btn-swing:active { background: rgba(232, 130, 42, 0.9); }
 
   .btn-deposit {
-    bottom: 125px; right: 28px;
+    bottom: 175px; left: 22px;
     width: 64px; height: 64px;
     background: rgba(74, 222, 128, 0.55);
     border: 3px solid rgba(74, 222, 128, 0.7);
@@ -304,7 +304,10 @@
     <div class="joystick-base"></div>
     <div class="joystick-knob" id="joystick-knob"></div>
   </div>
-  <div class="touch-look-zone" id="touch-look-zone"></div>
+  <div class="joystick-zone-right" id="joystick-zone-right">
+    <div class="joystick-base"></div>
+    <div class="joystick-knob" id="joystick-knob-right"></div>
+  </div>
   <div class="mobile-btn btn-swing" id="btn-swing">🥅</div>
   <div class="mobile-btn btn-deposit" id="btn-deposit">📦</div>
 </div>
@@ -582,7 +585,9 @@ function createNet() {
     const line = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.32, 3), nMat);
     line.rotation.z = (i / 4) * Math.PI; line.position.set(0, 0.12, -0.65); netGroup.add(line);
   }
-  netGroup.position.set(0.45, -0.4, 0); camera.add(netGroup);
+  netGroup.position.set(isMobile ? 0.3 : 0.45, isMobile ? -0.35 : -0.4, 0);
+  if (isMobile) netGroup.scale.set(1.15, 1.15, 1.15);
+  camera.add(netGroup);
 }
 
 function startSwing() {
@@ -735,84 +740,68 @@ document.addEventListener('pointerlockchange', () => {
 function requestPointerLock() { if (!isMobile) renderer.domElement.requestPointerLock(); }
 
 // ===================== MOBILE CONTROLS =====================
-const mobileInput = { moveX: 0, moveY: 0 };
-let joystickTouchId = null, lookTouchData = null;
+const mobileInput = { moveX: 0, moveY: 0, lookX: 0, lookY: 0 };
+let joystickTouchId = null, lookJoystickTouchId = null;
 
 function setupMobileControls() {
   const joystickZone = document.getElementById('joystick-zone');
   const joystickKnob = document.getElementById('joystick-knob');
-  const lookZone = document.getElementById('touch-look-zone');
+  const lookZone = document.getElementById('joystick-zone-right');
+  const lookKnob = document.getElementById('joystick-knob-right');
   const btnSwing = document.getElementById('btn-swing');
   const btnDeposit = document.getElementById('btn-deposit');
 
-  function getJoyCenter() {
-    const r = joystickZone.getBoundingClientRect();
-    return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, maxR: r.width / 2 - 28 };
+  // === Generic joystick helper ===
+  function makeJoystick(zone, knob, onMove, onEnd) {
+    let touchId = null;
+    function getCenter() {
+      const r = zone.getBoundingClientRect();
+      return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, maxR: r.width / 2 - 28 };
+    }
+    function update(touch) {
+      const { cx, cy, maxR } = getCenter();
+      let dx = touch.clientX - cx, dy = touch.clientY - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > maxR) { dx *= maxR / dist; dy *= maxR / dist; }
+      knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+      onMove(dx / maxR, dy / maxR);
+    }
+    zone.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (touchId !== null) return;
+      touchId = e.changedTouches[0].identifier;
+      update(e.changedTouches[0]);
+      knob.classList.add('active');
+    }, { passive: false });
+    zone.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      for (const t of e.changedTouches) if (t.identifier === touchId) update(t);
+    }, { passive: false });
+    const end = (e) => {
+      for (const t of e.changedTouches) {
+        if (t.identifier === touchId) {
+          touchId = null;
+          knob.style.transform = 'translate(-50%, -50%)';
+          knob.classList.remove('active');
+          onEnd();
+        }
+      }
+    };
+    zone.addEventListener('touchend', end);
+    zone.addEventListener('touchcancel', end);
   }
 
-  function updateJoystick(touch) {
-    const { cx, cy, maxR } = getJoyCenter();
-    let dx = touch.clientX - cx, dy = touch.clientY - cy;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist > maxR) { dx *= maxR / dist; dy *= maxR / dist; }
-    joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-    mobileInput.moveX = dx / maxR;
-    mobileInput.moveY = dy / maxR;
-  }
+  // Left joystick — movement
+  makeJoystick(joystickZone, joystickKnob,
+    (x, y) => { mobileInput.moveX = x; mobileInput.moveY = y; },
+    () => { mobileInput.moveX = 0; mobileInput.moveY = 0; }
+  );
 
-  joystickZone.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (joystickTouchId !== null) return;
-    joystickTouchId = e.changedTouches[0].identifier;
-    updateJoystick(e.changedTouches[0]);
-    joystickKnob.classList.add('active');
-  }, { passive: false });
-
-  joystickZone.addEventListener('touchmove', (e) => {
-    e.preventDefault();
-    for (const t of e.changedTouches) if (t.identifier === joystickTouchId) updateJoystick(t);
-  }, { passive: false });
-
-  const endJoy = (e) => {
-    for (const t of e.changedTouches) {
-      if (t.identifier === joystickTouchId) {
-        joystickTouchId = null;
-        mobileInput.moveX = 0; mobileInput.moveY = 0;
-        joystickKnob.style.transform = 'translate(-50%, -50%)';
-        joystickKnob.classList.remove('active');
-      }
-    }
-  };
-  joystickZone.addEventListener('touchend', endJoy);
-  joystickZone.addEventListener('touchcancel', endJoy);
-
-  // Look zone
-  lookZone.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (lookTouchData) return;
-    const t = e.changedTouches[0];
-    lookTouchData = { id: t.identifier, lastX: t.clientX, lastY: t.clientY };
-  }, { passive: false });
-
-  lookZone.addEventListener('touchmove', (e) => {
-    e.preventDefault();
-    for (const t of e.changedTouches) {
-      if (lookTouchData && t.identifier === lookTouchData.id) {
-        yaw -= (t.clientX - lookTouchData.lastX) * 0.004;
-        pitch -= (t.clientY - lookTouchData.lastY) * 0.004;
-        pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
-        lookTouchData.lastX = t.clientX;
-        lookTouchData.lastY = t.clientY;
-      }
-    }
-  }, { passive: false });
-
-  const endLook = (e) => {
-    for (const t of e.changedTouches)
-      if (lookTouchData && t.identifier === lookTouchData.id) lookTouchData = null;
-  };
-  lookZone.addEventListener('touchend', endLook);
-  lookZone.addEventListener('touchcancel', endLook);
+  // Right joystick — look (continuous rotation while held)
+  makeJoystick(lookZone, lookKnob,
+    (x, y) => { mobileInput.lookX = x; mobileInput.lookY = y; },
+    () => { mobileInput.lookX = 0; mobileInput.lookY = 0; }
+  );
 
   // Buttons
   btnSwing.addEventListener('touchstart', (e) => { e.preventDefault(); startSwing(); }, { passive: false });
@@ -827,9 +816,17 @@ function updatePlayer(dt) {
   const move = new THREE.Vector3();
 
   if (isMobile) {
+    // Left joystick — movement
     if (Math.abs(mobileInput.moveX) > 0.1 || Math.abs(mobileInput.moveY) > 0.1) {
       move.add(forward.clone().multiplyScalar(-mobileInput.moveY));
       move.add(right.clone().multiplyScalar(mobileInput.moveX));
+    }
+    // Right joystick — continuous look (apply rotation proportional to stick displacement)
+    const lookSpeed = 3.0;
+    if (Math.abs(mobileInput.lookX) > 0.1) yaw -= mobileInput.lookX * lookSpeed * dt;
+    if (Math.abs(mobileInput.lookY) > 0.1) {
+      pitch -= mobileInput.lookY * lookSpeed * dt;
+      pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
     }
   } else {
     if (keys['KeyW'] || keys['ArrowUp']) move.add(forward);
