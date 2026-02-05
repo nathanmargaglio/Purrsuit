@@ -3,7 +3,7 @@ const cats = [];
 function randomRange(a,b) { return a+Math.random()*(b-a); }
 
 // ===================== MODEL LOADING =====================
-const CAT_MODEL_NAMES = ['calico', 'galaxy', 'orange', 'tabby', 'tuxedo', 'maxwell_the_cat_dingus'];
+const CAT_MODEL_NAMES = ['calico', 'galaxy', 'orange', 'tabby', 'tuxedo'];
 const catModels = {};         // name -> THREE.Group (template)
 let catModelsLoaded = false;
 let catModelsLoading = false;
