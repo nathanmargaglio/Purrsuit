@@ -3,7 +3,8 @@ const keys={};let yaw=0,pitch=0,pointerLocked=false;
 document.addEventListener('keydown',e=>{keys[e.code]=true;});
 document.addEventListener('keyup',e=>{keys[e.code]=false;});
 document.addEventListener('mousemove',e=>{if(!pointerLocked||isMobile)return;yaw-=e.movementX*0.002;pitch-=e.movementY*0.002;pitch=Math.max(-Math.PI/2.2,Math.min(Math.PI/2.2,pitch));});
-document.addEventListener('mousedown',e=>{if(e.button===0&&pointerLocked&&state.phase==='PLAYING'&&!isMobile) startSwing();});
+document.addEventListener('mousedown',e=>{if(e.button===0&&pointerLocked&&state.phase==='PLAYING'&&!isMobile){if(state.cannonMode) shootCat(); else startSwing();}});
+document.addEventListener('keydown',e=>{if(e.code==='KeyQ'&&!e.repeat&&state.phase==='PLAYING'&&state.upgrades.catCannon) toggleCannonMode();});
 document.addEventListener('pointerlockchange',()=>{pointerLocked=document.pointerLockElement===renderer.domElement;if(!pointerLocked&&state.phase==='PLAYING'&&!isMobile){state.paused=true;document.getElementById('blocker').classList.remove('hidden');document.getElementById('blocker-prompt').textContent='Click to Resume';document.getElementById('blocker-subtitle').textContent='Game paused';}});
 function requestPointerLock(){if(!isMobile) renderer.domElement.requestPointerLock();}
 
@@ -27,7 +28,9 @@ function setupMobileControls(){
   }
   makeDJ('joystick-zone','joystick-base-left','joystick-knob',(x,y)=>{mobileInput.moveX=x;mobileInput.moveY=y;},()=>{mobileInput.moveX=0;mobileInput.moveY=0;});
   makeDJ('joystick-zone-right','joystick-base-right','joystick-knob-right',(x,y)=>{mobileInput.lookX=x;mobileInput.lookY=y;},()=>{mobileInput.lookX=0;mobileInput.lookY=0;});
-  btnSwing.addEventListener('touchstart',e=>{e.preventDefault();startSwing();},{passive:false});
+  btnSwing.addEventListener('touchstart',e=>{e.preventDefault();if(state.cannonMode) shootCat(); else startSwing();},{passive:false});
+  const btnCannon=document.getElementById('btn-cannon');
+  if(btnCannon) btnCannon.addEventListener('touchstart',e=>{e.preventDefault();toggleCannonMode();},{passive:false});
   btnDeposit.addEventListener('touchstart',e=>{e.preventDefault();if(isNearCrate())depositCats();},{passive:false});
   hudPause.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();state.paused=true;document.getElementById('blocker').classList.remove('hidden');document.getElementById('blocker-prompt').textContent='Tap to Resume';document.getElementById('blocker-subtitle').textContent='Game paused';if(isMobile)document.getElementById('settings-panel').classList.add('visible');},{passive:false});
   const sS=document.getElementById('setting-sensitivity'),sV=document.getElementById('sensitivity-value'),dS=document.getElementById('setting-deadzone'),dV=document.getElementById('deadzone-value');
@@ -60,8 +63,13 @@ function updatePlayer(dt) {
   camera.rotation.x = pitch + (camShakeIntensity>0 ? (Math.random()-0.5)*camShakeIntensity*0.5 : 0);
 
   if(!isMobile&&keys['KeyE']&&isNearCrate()) depositCats();
-  if(isMobile) document.getElementById('btn-deposit').classList.toggle('visible',isNearCrate()&&state.catsInBag>0);
+  if(isMobile){
+    document.getElementById('btn-deposit').classList.toggle('visible',isNearCrate()&&state.catsInBag>0);
+    const bc=document.getElementById('btn-cannon');
+    if(bc) bc.classList.toggle('visible',!!state.upgrades.catCannon);
+  }
   const nc=isNearCrate();
-  if(!isMobile){if(nc&&state.catsInBag>0) showCenterMsg("Press E to deposit"); else if(state.catsInBag>=getMaxBag()) showCenterMsg("Bag full! Return to crate"); else hideCenterMsg();}
+  if(state.cannonMode){if(state.catsInBag>0) showCenterMsg("Cannon mode! Click to shoot · Q to switch"); else showCenterMsg("No cats to shoot! Q to switch back");}
+  else if(!isMobile){if(nc&&state.catsInBag>0) showCenterMsg("Press E to deposit"+(state.upgrades.catCannon?" · Q for cannon":"")); else if(state.catsInBag>=getMaxBag()) showCenterMsg("Bag full! Return to crate"+(state.upgrades.catCannon?" or use cannon (Q)":"")); else hideCenterMsg();}
   else{if(state.catsInBag>=getMaxBag()&&!nc) showCenterMsg("Bag full! Return to crate"); else hideCenterMsg();}
 }

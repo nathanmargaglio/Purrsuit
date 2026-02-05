@@ -31,5 +31,17 @@ function renderUpgradeCards(){
     if(can) card.querySelector('.upgrade-btn').addEventListener('click',()=>{state.currency-=cost;state.upgrades[up.key]++;document.getElementById('currency-display').textContent=state.currency;playUpgradeSound();renderUpgradeCards();});
     c.appendChild(card);
   }
+  // Cat Cannon one-time unlock
+  if(!state.upgrades.catCannon){
+    const cost=getUpgradeCost('catCannon'),can=state.currency>=cost;
+    const card=document.createElement('div');card.className='upgrade-card'+(can?'':' disabled');
+    card.innerHTML=`<div class="upgrade-info"><div class="upgrade-name">🔫 Cat Cannon <span class="upgrade-level">Locked</span></div><div class="upgrade-desc">Shoot cats at the crate to deposit them from afar!</div></div><button class="upgrade-btn ${can?'':'cant-afford'}">${cost} 🐱</button>`;
+    if(can) card.querySelector('.upgrade-btn').addEventListener('click',()=>{state.currency-=cost;state.upgrades.catCannon=1;document.getElementById('currency-display').textContent=state.currency;playUpgradeSound();renderUpgradeCards();});
+    c.appendChild(card);
+  }
+}
+function updateCannonDisplay(){
+  const el=document.getElementById('cannon-toggle');
+  if(el) el.classList.toggle('active',state.cannonMode);
 }
 function hideUpgradeScreen(){document.getElementById('upgrade-screen').classList.remove('active');}
