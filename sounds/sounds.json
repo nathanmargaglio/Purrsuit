@@ -1,0 +1,42 @@
+﻿{
+    "music":  [
+                  "sounds/music/music_0.mp3"
+              ],
+    "collect":  [
+                    "sounds/collect/collect_0.mp3",
+                    "sounds/collect/collect_1.mp3",
+                    "sounds/collect/collect_2.mp3",
+                    "sounds/collect/collect_3.mp3",
+                    "sounds/collect/collect_4.mp3"
+                ],
+    "meow":  [
+                 "sounds/meow/meow_0.mp3",
+                 "sounds/meow/meow_1.mp3",
+                 "sounds/meow/meow_2.mp3",
+                 "sounds/meow/meow_3.mp3",
+                 "sounds/meow/meow_4.mp3",
+                 "sounds/meow/meow_5.mp3"
+             ],
+    "screech":  [
+                    "sounds/screech/screech_0.mp3",
+                    "sounds/screech/screech_1.mp3",
+                    "sounds/screech/screech_2.mp3",
+                    "sounds/screech/screech_3.mp3"
+                ],
+    "tumbling":  [
+                     "sounds/tumbling/tumbling_0.mp3",
+                     "sounds/tumbling/tumbling_1.mp3"
+                 ],
+    "woosh":  [
+                  "sounds/woosh/woosh_0.mp3",
+                  "sounds/woosh/woosh_1.mp3",
+                  "sounds/woosh/woosh_2.mp3",
+                  "sounds/woosh/woosh_3.mp3"
+              ],
+    "purring":  [
+                    "sounds/purring/purring_0.mp3",
+                    "sounds/purring/purring_1.mp3",
+                    "sounds/purring/purring_2.mp3",
+                    "sounds/purring/purring_3.mp3"
+                ]
+}
