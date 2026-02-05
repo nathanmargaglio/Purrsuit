@@ -272,8 +272,8 @@ mainLight.shadow.camera.left=-40; mainLight.shadow.camera.right=40;
 mainLight.shadow.camera.top=40; mainLight.shadow.camera.bottom=-40;
 scene.add(mainLight);
 
-scene.add(Object.assign(new THREE.PointLight(0xFFAA44,0.5,25),{position:new THREE.Vector3(5,3,3)}));
-scene.add(Object.assign(new THREE.PointLight(0xFFAA44,0.5,25),{position:new THREE.Vector3(-4,3,-5)}));
+const pl1=new THREE.PointLight(0xFFAA44,0.5,25);pl1.position.set(5,3,3);scene.add(pl1);
+const pl2=new THREE.PointLight(0xFFAA44,0.5,25);pl2.position.set(-4,3,-5);scene.add(pl2);
 
 function updateFog() { const r=getCurrentMaxRadius(); scene.fog=new THREE.Fog(0x2a1f14, r*0.8, r*2.2); }
 
@@ -504,7 +504,7 @@ function createCatMesh(color, size) {
   [-1,1].forEach(s=>{ const ear=new THREE.Mesh(new THREE.ConeGeometry(0.055*size,0.11*size,4),m); ear.position.set(s*0.08*size,0.46*size,0.26*size); g.add(ear); });
   const tail=new THREE.Mesh(new THREE.CylinderGeometry(0.025*size,0.015*size,0.35*size,5),m); tail.position.set(0,0.3*size,-0.3*size); tail.rotation.x=-0.6; g.add(tail);
   const eM=new THREE.MeshBasicMaterial({color:0xCCFF44}), pM=new THREE.MeshBasicMaterial({color:0x111111});
-  [-1,1].forEach(s=>{ g.add(Object.assign(new THREE.Mesh(new THREE.SphereGeometry(0.03*size,6,4),eM),{position:new THREE.Vector3(s*0.06*size,0.35*size,0.42*size)})); g.add(Object.assign(new THREE.Mesh(new THREE.SphereGeometry(0.018*size,4,4),pM),{position:new THREE.Vector3(s*0.06*size,0.35*size,0.445*size)})); });
+  [-1,1].forEach(s=>{ const eye=new THREE.Mesh(new THREE.SphereGeometry(0.03*size,6,4),eM);eye.position.set(s*0.06*size,0.35*size,0.42*size);g.add(eye); const pupil=new THREE.Mesh(new THREE.SphereGeometry(0.018*size,4,4),pM);pupil.position.set(s*0.06*size,0.35*size,0.445*size);g.add(pupil); });
   return g;
 }
 
@@ -573,8 +573,8 @@ const netGroup = new THREE.Group();
 let isSwinging=false, swingTime=0, canSwing=true, swingChecked=false;
 const SWING_DURATION = 0.35;
 function createNet() {
-  netGroup.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.014,0.7,6),new THREE.MeshStandardMaterial({color:0x8B5A2B})),{rotation:new THREE.Euler(Math.PI/2.3,0,0),position:new THREE.Vector3(0,-0.05,-0.25)}));
-  netGroup.add(Object.assign(new THREE.Mesh(new THREE.TorusGeometry(0.17,0.012,8,20),new THREE.MeshStandardMaterial({color:0x888888})),{position:new THREE.Vector3(0,0.12,-0.65)}));
+  const handle=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.014,0.7,6),new THREE.MeshStandardMaterial({color:0x8B5A2B}));handle.rotation.set(Math.PI/2.3,0,0);handle.position.set(0,-0.05,-0.25);netGroup.add(handle);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(0.17,0.012,8,20),new THREE.MeshStandardMaterial({color:0x888888}));rim.position.set(0,0.12,-0.65);netGroup.add(rim);
   const nM=new THREE.MeshBasicMaterial({color:0xDDDDDD,transparent:true,opacity:0.35});
   for(let i=0;i<4;i++){const l=new THREE.Mesh(new THREE.CylinderGeometry(0.004,0.004,0.32,3),nM);l.rotation.z=(i/4)*Math.PI;l.position.set(0,0.12,-0.65);netGroup.add(l);}
   netGroup.position.set(isMobile?0.3:0.45, isMobile?-0.35:-0.4, 0);
