@@ -311,7 +311,7 @@ function makeFloorTexture(theme) {
   return tex;
 }
 
-function buildRingGeometry(ring) {
+function buildRingGeometry(ring, isOutermost) {
   const theme = getTheme(ring);
   const iR = ringInnerR(ring);
   const oR = ringOuterR(ring);
@@ -329,7 +329,6 @@ function buildRingGeometry(ring) {
   }
   const floor = new THREE.Mesh(floorGeo, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.8, side: THREE.DoubleSide }));
   floor.rotation.x = -Math.PI/2; floor.receiveShadow = true;
-  // Fix UVs for ring geometry to tile properly
   if (ring > 0) {
     const uvs = floor.geometry.attributes.uv;
     const pos = floor.geometry.attributes.position;
@@ -339,45 +338,48 @@ function buildRingGeometry(ring) {
   }
   scene.add(floor);
 
-  // Wall at outer edge
-  const wall = new THREE.Mesh(
-    new THREE.CylinderGeometry(oR, oR, ROOM_HEIGHT, 64, 1, true),
-    new THREE.MeshStandardMaterial({ color: theme.wall, roughness: 0.9, side: THREE.BackSide })
-  );
-  wall.position.y = ROOM_HEIGHT/2; scene.add(wall);
+  const entry = { floor, wall: null, ceil: null, trim: null, outerR: oR, ring };
 
-  // Ceiling ring
-  let ceilGeo;
-  if (ring === 0) { ceilGeo = new THREE.CircleGeometry(oR, 64); }
-  else { ceilGeo = new THREE.RingGeometry(iR, oR, 64); }
-  const ceil = new THREE.Mesh(ceilGeo, new THREE.MeshStandardMaterial({ color: theme.ceil, roughness: 1, side: THREE.DoubleSide }));
-  ceil.rotation.x = Math.PI/2; ceil.position.y = ROOM_HEIGHT; scene.add(ceil);
+  // Only build wall/ceiling/trim for the outermost ring
+  if (isOutermost) {
+    const wall = new THREE.Mesh(
+      new THREE.CylinderGeometry(oR, oR, ROOM_HEIGHT, 64, 1, true),
+      new THREE.MeshStandardMaterial({ color: theme.wall, roughness: 0.9, side: THREE.BackSide })
+    );
+    wall.position.y = ROOM_HEIGHT/2; scene.add(wall);
 
-  // Trim
-  const trim = new THREE.Mesh(
-    new THREE.CylinderGeometry(oR-0.01, oR-0.01, 0.3, 64, 1, true),
-    new THREE.MeshStandardMaterial({ color: theme.trim, side: THREE.BackSide })
-  );
-  trim.position.y = 0.15; scene.add(trim);
+    let ceilGeo;
+    if (ring === 0) { ceilGeo = new THREE.CircleGeometry(oR, 64); }
+    else { ceilGeo = new THREE.RingGeometry(iR, oR, 64); }
+    const ceil = new THREE.Mesh(ceilGeo, new THREE.MeshStandardMaterial({ color: theme.ceil, roughness: 1, side: THREE.DoubleSide }));
+    ceil.rotation.x = Math.PI/2; ceil.position.y = ROOM_HEIGHT; scene.add(ceil);
 
-  const entry = { floor, wall, ceil, trim, outerR: oR, ring };
+    const trim = new THREE.Mesh(
+      new THREE.CylinderGeometry(oR-0.01, oR-0.01, 0.3, 64, 1, true),
+      new THREE.MeshStandardMaterial({ color: theme.trim, side: THREE.BackSide })
+    );
+    trim.position.y = 0.15; scene.add(trim);
+
+    entry.wall = wall; entry.ceil = ceil; entry.trim = trim;
+  }
+
   builtRings.push(entry);
   return entry;
 }
 
 function clearAllRingMeshes() {
   for (const r of builtRings) {
-    scene.remove(r.floor); scene.remove(r.wall); scene.remove(r.ceil); scene.remove(r.trim);
-    if (r.fallingWall) scene.remove(r.fallingWall);
-    if (r.fallingCeil) scene.remove(r.fallingCeil);
-    if (r.fallingTrim) scene.remove(r.fallingTrim);
+    scene.remove(r.floor);
+    if (r.wall) scene.remove(r.wall);
+    if (r.ceil) scene.remove(r.ceil);
+    if (r.trim) scene.remove(r.trim);
   }
   builtRings.length = 0;
 }
 
 function buildRoomUpToRing(maxRing) {
   clearAllRingMeshes();
-  for (let i = 0; i <= maxRing; i++) buildRingGeometry(i);
+  for (let i = 0; i <= maxRing; i++) buildRingGeometry(i, i === maxRing);
   updateFog();
 }
 
@@ -391,7 +393,7 @@ function startExpansion() {
   state.expanding = true;
   const currentRing = state.activeDayRing;
   const ringEntry = builtRings.find(r => r.ring === currentRing);
-  if (!ringEntry) { state.expanding = false; return; }
+  if (!ringEntry || !ringEntry.wall) { state.expanding = false; return; }
 
   // The wall/ceil/trim of the current outermost ring will "fall"
   // We move them into a separate animation track
@@ -466,8 +468,8 @@ function updateExpansion(dt) {
     state.activeDayRing = expandAnim.nextRing;
     state.progressRing = Math.max(state.progressRing, state.activeDayRing);
 
-    // Build the new ring geometry
-    buildRingGeometry(state.activeDayRing);
+    // Build the new ring geometry (it's the new outermost)
+    buildRingGeometry(state.activeDayRing, true);
     updateFog();
     updateRingDisplay();
 
