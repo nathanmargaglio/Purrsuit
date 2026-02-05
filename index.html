@@ -125,6 +125,42 @@
     100% { opacity: 0; transform: translate(-50%, -70%) scale(1); }
   }
 
+  /* ===== SETTINGS PANEL ===== */
+  .settings-panel {
+    margin-top: 24px; background: rgba(255,255,255,0.08);
+    border-radius: 14px; padding: 16px 22px;
+    width: 100%; max-width: 320px;
+    display: none;
+  }
+  .settings-panel.visible { display: block; }
+  .settings-title {
+    font-family: 'Fredoka', sans-serif; font-size: 1.1rem;
+    color: #F7C948; margin-bottom: 12px; text-align: center;
+  }
+  .setting-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 10px; color: #E8C9A0; font-size: 0.9rem;
+  }
+  .setting-label { flex: 1; min-width: 100px; }
+  .setting-row input[type="range"] {
+    flex: 1.2; accent-color: #E8822A; height: 6px;
+    cursor: pointer;
+  }
+  .setting-value {
+    min-width: 36px; text-align: right; font-family: 'Fredoka', sans-serif;
+    color: #F7C948; font-size: 0.95rem;
+  }
+
+  /* ===== PAUSE BUTTON ===== */
+  .hud-pause {
+    display: none; font-size: 1.5rem; pointer-events: auto;
+    cursor: pointer; padding: 4px 8px; opacity: 0.7;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (max-width: 600px) {
+    .hud-pause { display: block; }
+  }
+
   /* ===== MOBILE CONTROLS ===== */
   #mobile-controls {
     display: none; position: fixed; inset: 0; z-index: 15;
@@ -133,31 +169,36 @@
   #mobile-controls.active { display: block; }
 
   .joystick-zone {
-    position: absolute; bottom: 20px; left: 20px;
-    width: 140px; height: 140px;
+    position: absolute; bottom: 0; left: 0;
+    width: 45%; height: 50%;
     pointer-events: auto; touch-action: none;
   }
   .joystick-base {
-    position: absolute; inset: 0;
+    position: absolute;
+    width: 140px; height: 140px;
+    bottom: 20px; left: 20px;
     border-radius: 50%;
     background: rgba(255,255,255,0.1);
     border: 2px solid rgba(255,255,255,0.2);
+    transition: opacity 0.15s;
   }
+  .joystick-base.dynamic { transition: none; }
   .joystick-knob {
     position: absolute;
     width: 56px; height: 56px;
     border-radius: 50%;
     background: rgba(255,255,255,0.3);
     border: 2px solid rgba(255,255,255,0.4);
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
+    bottom: 62px; left: 62px;
+    transform: translate(-50%, 50%);
     transition: background 0.1s;
+    pointer-events: none;
   }
   .joystick-knob.active { background: rgba(255,255,255,0.45); }
 
   .joystick-zone-right {
-    position: absolute; bottom: 20px; right: 20px;
-    width: 140px; height: 140px;
+    position: absolute; bottom: 0; right: 0;
+    width: 45%; height: 50%;
     pointer-events: auto; touch-action: none;
   }
 
@@ -283,6 +324,19 @@
   <h1>🐱 PURRSUIT</h1>
   <div class="subtitle" id="blocker-subtitle">Catch 'em all — one day at a time</div>
   <div class="prompt" id="blocker-prompt">Click to Start</div>
+  <div class="settings-panel" id="settings-panel">
+    <div class="settings-title">⚙️ Controls</div>
+    <label class="setting-row">
+      <span class="setting-label">Look Sensitivity</span>
+      <input type="range" id="setting-sensitivity" min="1" max="5" step="0.25" value="2.5">
+      <span class="setting-value" id="sensitivity-value">2.5</span>
+    </label>
+    <label class="setting-row">
+      <span class="setting-label">Stick Dead Zone</span>
+      <input type="range" id="setting-deadzone" min="0.05" max="0.35" step="0.05" value="0.15">
+      <span class="setting-value" id="deadzone-value">15%</span>
+    </label>
+  </div>
 </div>
 
 <div id="hud">
@@ -290,6 +344,7 @@
     <div class="hud-day">Day <span id="day-num">1</span></div>
     <div class="hud-timer" id="timer">1:00</div>
     <div class="hud-score">Score: <span id="total-score">0</span></div>
+    <div class="hud-pause" id="hud-pause">⏸</div>
   </div>
   <div class="crosshair"></div>
   <div class="hud-center-msg" id="center-msg"></div>
@@ -301,12 +356,12 @@
 
 <div id="mobile-controls">
   <div class="joystick-zone" id="joystick-zone">
-    <div class="joystick-base"></div>
+    <div class="joystick-base" id="joystick-base-left"></div>
     <div class="joystick-knob" id="joystick-knob"></div>
   </div>
   <div class="joystick-zone-right" id="joystick-zone-right">
-    <div class="joystick-base"></div>
-    <div class="joystick-knob" id="joystick-knob-right"></div>
+    <div class="joystick-base" id="joystick-base-right" style="left:auto;right:20px;"></div>
+    <div class="joystick-knob" id="joystick-knob-right" style="left:auto;right:62px;"></div>
   </div>
   <div class="mobile-btn btn-swing" id="btn-swing">🥅</div>
   <div class="mobile-btn btn-deposit" id="btn-deposit">📦</div>
@@ -350,6 +405,10 @@ const state = {
   catsInBag: 0,
   upgrades: { netSize: 0, walkSpeed: 0, bagSize: 0 },
   paused: false,
+  settings: {
+    lookSensitivity: 2.5,
+    deadZone: 0.15,
+  },
 };
 
 function getNetRange() { return 3.5 + state.upgrades.netSize * 1.0; }
@@ -741,50 +800,93 @@ function requestPointerLock() { if (!isMobile) renderer.domElement.requestPointe
 
 // ===================== MOBILE CONTROLS =====================
 const mobileInput = { moveX: 0, moveY: 0, lookX: 0, lookY: 0 };
-let joystickTouchId = null, lookJoystickTouchId = null;
 
 function setupMobileControls() {
-  const joystickZone = document.getElementById('joystick-zone');
-  const joystickKnob = document.getElementById('joystick-knob');
-  const lookZone = document.getElementById('joystick-zone-right');
-  const lookKnob = document.getElementById('joystick-knob-right');
   const btnSwing = document.getElementById('btn-swing');
   const btnDeposit = document.getElementById('btn-deposit');
+  const hudPause = document.getElementById('hud-pause');
 
-  // === Generic joystick helper ===
-  function makeJoystick(zone, knob, onMove, onEnd) {
+  // === Dynamic re-centering joystick factory ===
+  function makeDynamicJoystick(zoneId, baseId, knobId, onMove, onEnd) {
+    const zone = document.getElementById(zoneId);
+    const base = document.getElementById(baseId);
+    const knob = document.getElementById(knobId);
     let touchId = null;
-    function getCenter() {
-      const r = zone.getBoundingClientRect();
-      return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, maxR: r.width / 2 - 28 };
-    }
-    function update(touch) {
-      const { cx, cy, maxR } = getCenter();
-      let dx = touch.clientX - cx, dy = touch.clientY - cy;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist > maxR) { dx *= maxR / dist; dy *= maxR / dist; }
-      knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-      onMove(dx / maxR, dy / maxR);
-    }
+    let originX = 0, originY = 0; // center of joystick in screen coords
+    const joyRadius = 70; // half of the 140px visual base
+    const knobRadius = 28;
+    const maxR = joyRadius - knobRadius;
+
     zone.addEventListener('touchstart', (e) => {
       e.preventDefault();
       if (touchId !== null) return;
-      touchId = e.changedTouches[0].identifier;
-      update(e.changedTouches[0]);
+      const t = e.changedTouches[0];
+      touchId = t.identifier;
+
+      // Re-center the visual joystick on touch point
+      originX = t.clientX;
+      originY = t.clientY;
+
+      // Position the base element centered on touch
+      base.style.left = (originX - joyRadius) + 'px';
+      base.style.top = (originY - joyRadius) + 'px';
+      base.style.right = 'auto';
+      base.style.bottom = 'auto';
+      base.style.position = 'fixed';
+      base.classList.add('dynamic');
+
+      // Knob starts centered
+      knob.style.left = originX + 'px';
+      knob.style.top = originY + 'px';
+      knob.style.right = 'auto';
+      knob.style.bottom = 'auto';
+      knob.style.position = 'fixed';
+      knob.style.transform = 'translate(-50%, -50%)';
       knob.classList.add('active');
+
+      onMove(0, 0);
     }, { passive: false });
+
     zone.addEventListener('touchmove', (e) => {
       e.preventDefault();
-      for (const t of e.changedTouches) if (t.identifier === touchId) update(t);
+      for (const t of e.changedTouches) {
+        if (t.identifier !== touchId) continue;
+        let dx = t.clientX - originX;
+        let dy = t.clientY - originY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > maxR) { dx *= maxR / dist; dy *= maxR / dist; }
+
+        knob.style.left = (originX + dx) + 'px';
+        knob.style.top = (originY + dy) + 'px';
+
+        // Normalize to -1..1
+        const nx = dx / maxR;
+        const ny = dy / maxR;
+
+        // Apply dead zone
+        const dz = state.settings.deadZone;
+        const mag = Math.sqrt(nx * nx + ny * ny);
+        if (mag < dz) {
+          onMove(0, 0);
+        } else {
+          // Remap so edge of dead zone = 0, full deflection = 1
+          const remapped = (mag - dz) / (1 - dz);
+          const scale = remapped / mag;
+          onMove(nx * scale, ny * scale);
+        }
+      }
     }, { passive: false });
+
     const end = (e) => {
       for (const t of e.changedTouches) {
-        if (t.identifier === touchId) {
-          touchId = null;
-          knob.style.transform = 'translate(-50%, -50%)';
-          knob.classList.remove('active');
-          onEnd();
-        }
+        if (t.identifier !== touchId) continue;
+        touchId = null;
+        knob.classList.remove('active');
+        base.classList.remove('dynamic');
+        // Reset to default CSS positions
+        base.style.cssText = '';
+        knob.style.cssText = '';
+        onEnd();
       }
     };
     zone.addEventListener('touchend', end);
@@ -792,13 +894,13 @@ function setupMobileControls() {
   }
 
   // Left joystick — movement
-  makeJoystick(joystickZone, joystickKnob,
+  makeDynamicJoystick('joystick-zone', 'joystick-base-left', 'joystick-knob',
     (x, y) => { mobileInput.moveX = x; mobileInput.moveY = y; },
     () => { mobileInput.moveX = 0; mobileInput.moveY = 0; }
   );
 
-  // Right joystick — look (continuous rotation while held)
-  makeJoystick(lookZone, lookKnob,
+  // Right joystick — look
+  makeDynamicJoystick('joystick-zone-right', 'joystick-base-right', 'joystick-knob-right',
     (x, y) => { mobileInput.lookX = x; mobileInput.lookY = y; },
     () => { mobileInput.lookX = 0; mobileInput.lookY = 0; }
   );
@@ -806,6 +908,37 @@ function setupMobileControls() {
   // Buttons
   btnSwing.addEventListener('touchstart', (e) => { e.preventDefault(); startSwing(); }, { passive: false });
   btnDeposit.addEventListener('touchstart', (e) => { e.preventDefault(); if (isNearCrate()) depositCats(); }, { passive: false });
+
+  // Mobile pause
+  hudPause.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    state.paused = true;
+    const blocker = document.getElementById('blocker');
+    blocker.classList.remove('hidden');
+    document.getElementById('blocker-prompt').textContent = 'Tap to Resume';
+    document.getElementById('blocker-subtitle').textContent = 'Game paused';
+    if (isMobile) document.getElementById('settings-panel').classList.add('visible');
+  }, { passive: false });
+
+  // Settings sliders
+  const sensSlider = document.getElementById('setting-sensitivity');
+  const sensValue = document.getElementById('sensitivity-value');
+  const dzSlider = document.getElementById('setting-deadzone');
+  const dzValue = document.getElementById('deadzone-value');
+
+  sensSlider.addEventListener('input', () => {
+    state.settings.lookSensitivity = parseFloat(sensSlider.value);
+    sensValue.textContent = sensSlider.value;
+  });
+  dzSlider.addEventListener('input', () => {
+    state.settings.deadZone = parseFloat(dzSlider.value);
+    dzValue.textContent = Math.round(dzSlider.value * 100) + '%';
+  });
+
+  // Prevent sliders from bubbling to blocker click
+  document.getElementById('settings-panel').addEventListener('click', (e) => e.stopPropagation());
+  document.getElementById('settings-panel').addEventListener('touchend', (e) => e.stopPropagation());
 }
 
 // ===================== PLAYER UPDATE =====================
@@ -817,14 +950,14 @@ function updatePlayer(dt) {
 
   if (isMobile) {
     // Left joystick — movement
-    if (Math.abs(mobileInput.moveX) > 0.1 || Math.abs(mobileInput.moveY) > 0.1) {
+    if (Math.abs(mobileInput.moveX) > 0.01 || Math.abs(mobileInput.moveY) > 0.01) {
       move.add(forward.clone().multiplyScalar(-mobileInput.moveY));
       move.add(right.clone().multiplyScalar(mobileInput.moveX));
     }
     // Right joystick — continuous look (apply rotation proportional to stick displacement)
-    const lookSpeed = 3.0;
-    if (Math.abs(mobileInput.lookX) > 0.1) yaw -= mobileInput.lookX * lookSpeed * dt;
-    if (Math.abs(mobileInput.lookY) > 0.1) {
+    const lookSpeed = state.settings.lookSensitivity;
+    if (Math.abs(mobileInput.lookX) > 0.01) yaw -= mobileInput.lookX * lookSpeed * dt;
+    if (Math.abs(mobileInput.lookY) > 0.01) {
       pitch -= mobileInput.lookY * lookSpeed * dt;
       pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
     }
@@ -960,10 +1093,12 @@ document.getElementById('start-day-btn').addEventListener('click', () => { state
 function handleBlockerActivation() {
   if (state.phase === 'MENU') {
     document.getElementById('blocker').classList.add('hidden');
+    document.getElementById('settings-panel').classList.remove('visible');
     startDay();
-  } else if (state.phase === 'PLAYING' && !isMobile) {
+  } else if (state.phase === 'PLAYING') {
     state.paused = false;
-    requestPointerLock();
+    document.getElementById('settings-panel').classList.remove('visible');
+    if (!isMobile) requestPointerLock();
     document.getElementById('blocker').classList.add('hidden');
   }
 }
@@ -973,6 +1108,7 @@ document.getElementById('blocker').addEventListener('touchend', (e) => { e.preve
 
 if (isMobile) {
   document.getElementById('blocker-prompt').textContent = 'Tap to Start';
+  document.getElementById('settings-panel').classList.add('visible');
 }
 
 // Prevent default touch on canvas
