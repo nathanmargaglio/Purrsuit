@@ -55,6 +55,7 @@ createCrate();
 createNet();
 if(isMobile) setupMobileControls();
 loadSoundManifest();
+loadCatModels();
 document.getElementById('cannon-toggle').addEventListener('click',()=>toggleCannonMode());
 
 let lastTime=0;

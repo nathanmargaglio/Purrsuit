@@ -2,7 +2,61 @@
 const cats = [];
 function randomRange(a,b) { return a+Math.random()*(b-a); }
 
-function createCatMesh(color, size) {
+// ===================== MODEL LOADING =====================
+const CAT_MODEL_NAMES = ['calico', 'galaxy', 'orange', 'tabby', 'tuxedo', 'maxwell_the_cat_dingus'];
+const catModels = {};         // name -> THREE.Group (template)
+let catModelsLoaded = false;
+let catModelsLoading = false;
+
+// Model dimensions: width=29.8, height=16.4, length=19.2
+// Target height for size=1 cat is ~0.46 units (matching old procedural cat)
+const CAT_MODEL_BASE_SCALE = 0.028;
+
+function loadCatModels() {
+  if (catModelsLoading || catModelsLoaded) return Promise.resolve();
+  catModelsLoading = true;
+
+  const loader = new THREE.GLTFLoader();
+  const promises = CAT_MODEL_NAMES.map(name =>
+    new Promise(resolve => {
+      loader.load(
+        'models/' + name + '.glb',
+        gltf => {
+          const model = gltf.scene;
+          model.traverse(child => {
+            if (child.isMesh) {
+              child.castShadow = true;
+              child.receiveShadow = true;
+            }
+          });
+          catModels[name] = model;
+          resolve();
+        },
+        undefined,
+        err => {
+          console.warn('Failed to load cat model:', name, err);
+          resolve(); // Don't reject — we'll fall back for missing models
+        }
+      );
+    })
+  );
+
+  return Promise.all(promises).then(() => {
+    catModelsLoaded = true;
+    catModelsLoading = false;
+    const loaded = Object.keys(catModels).length;
+    console.log('Cat models loaded: ' + loaded + '/' + CAT_MODEL_NAMES.length);
+  });
+}
+
+function getRandomCatModel() {
+  const available = Object.keys(catModels);
+  if (available.length === 0) return null;
+  return catModels[available[Math.floor(Math.random() * available.length)]];
+}
+
+// ===================== FALLBACK PROCEDURAL CAT =====================
+function createCatMeshFallback(color, size) {
   const g = new THREE.Group(), m = new THREE.MeshStandardMaterial({color,roughness:0.7});
   const body = new THREE.Mesh(new THREE.SphereGeometry(0.22*size,8,6),m); body.scale.set(1,0.85,1.4); body.position.y=0.22*size; body.castShadow=true; g.add(body);
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.16*size,8,6),m); head.position.set(0,0.32*size,0.28*size); head.castShadow=true; g.add(head);
@@ -11,6 +65,27 @@ function createCatMesh(color, size) {
   const eM=new THREE.MeshBasicMaterial({color:0xCCFF44}), pM=new THREE.MeshBasicMaterial({color:0x111111});
   [-1,1].forEach(s=>{ const eye=new THREE.Mesh(new THREE.SphereGeometry(0.03*size,6,4),eM);eye.position.set(s*0.06*size,0.35*size,0.42*size);g.add(eye); const pupil=new THREE.Mesh(new THREE.SphereGeometry(0.018*size,4,4),pM);pupil.position.set(s*0.06*size,0.35*size,0.445*size);g.add(pupil); });
   return g;
+}
+
+// ===================== UNIFIED CAT CREATION =====================
+function createCatMesh(color, size) {
+  const template = getRandomCatModel();
+  if (template) {
+    const clone = template.clone(true);
+    // Deep clone materials so cats don't share material state
+    clone.traverse(child => {
+      if (child.isMesh && child.material) {
+        child.material = child.material.clone();
+      }
+    });
+    const s = CAT_MODEL_BASE_SCALE * size;
+    clone.scale.set(s, s, s);
+    // Mark as a GLB model cat for animation purposes
+    clone.userData.isModelCat = true;
+    return clone;
+  }
+  // Fallback to procedural mesh
+  return createCatMeshFallback(color, size);
 }
 
 function spawnCatsForRing(ring) {
@@ -49,7 +124,17 @@ function updateCat(cat, dt, playerPos) {
     cat.idleTimer -= dt; if (cat.idleTimer<=0) cat.isIdle=false;
     const d=new THREE.Vector3(cat.mesh.position.x,0,cat.mesh.position.z).distanceTo(playerPos);
     if (d<cat.fleeDistance*0.6) cat.isIdle=false;
-    else { cat.velocity.multiplyScalar(0.9); cat.mesh.position.x+=cat.velocity.x*dt; cat.mesh.position.z+=cat.velocity.z*dt; clampToRoom(cat.mesh.position,roomR); return; }
+    else {
+      cat.velocity.multiplyScalar(0.9);
+      cat.mesh.position.x+=cat.velocity.x*dt;
+      cat.mesh.position.z+=cat.velocity.z*dt;
+      clampToRoom(cat.mesh.position,roomR);
+      // Gentle idle sway
+      cat.bobPhase += dt * 2;
+      cat.mesh.rotation.z = Math.sin(cat.bobPhase) * 0.03;
+      cat.mesh.position.y = 0;
+      return;
+    }
   }
 
   cat.wanderTimer -= dt;
@@ -65,7 +150,21 @@ function updateCat(cat, dt, playerPos) {
   clampToRoom(cat.mesh.position, roomR);
 
   if (cat.velocity.length()>0.05) { const ta=Math.atan2(cat.velocity.x,cat.velocity.z); let d=ta-cat.mesh.rotation.y; while(d>Math.PI) d-=Math.PI*2; while(d<-Math.PI) d+=Math.PI*2; cat.mesh.rotation.y+=d*Math.min(cat.turnSpeed*dt*2,1); }
-  cat.bobPhase+=dt*cat.speed*8; cat.mesh.position.y=cat.velocity.length()>0.2?Math.abs(Math.sin(cat.bobPhase))*0.04*cat.size:0;
+
+  // Walking animation: soft bounce side to side
+  const spd = cat.velocity.length();
+  cat.bobPhase += dt * cat.speed * 8;
+  if (spd > 0.2) {
+    // Soft vertical bob
+    cat.mesh.position.y = Math.abs(Math.sin(cat.bobPhase)) * 0.04 * cat.size;
+    // Gentle side-to-side tilt (roll)
+    cat.mesh.rotation.z = Math.sin(cat.bobPhase * 0.5) * 0.08;
+  } else {
+    cat.mesh.position.y = 0;
+    // Ease roll back to zero when stopped
+    cat.mesh.rotation.z *= 0.9;
+  }
+
   cat.soundTimer-=dt; if(cat.soundTimer<=0){playCatSound(cat.mesh.position,cat.size);cat.soundTimer=randomRange(4,14);}
 }
 
