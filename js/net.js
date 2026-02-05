@@ -45,6 +45,13 @@ const CRATE_HIT_RADIUS = 1.8;
 
 function toggleCannonMode() {
   if(!state.upgrades.catCannon || state.phase!=='PLAYING' || state.expanding) return;
+  // Turn off vacuum mode if active
+  if(state.vacuumMode) {
+    state.vacuumMode = false;
+    vacuumActive = false;
+    vacuumGroup.visible = false;
+    updateVacuumDisplay();
+  }
   state.cannonMode = !state.cannonMode;
   netGroup.visible = !state.cannonMode;
   updateCannonDisplay();
@@ -142,4 +149,158 @@ function updateProjectileCats(dt) {
 function clearProjectileCats() {
   for(const p of projectileCats) scene.remove(p.mesh);
   projectileCats.length = 0;
+}
+
+// ===================== CAT VACUUM =====================
+const vacuumGroup = new THREE.Group();
+let vacuumActive = false; // true while action button is held in vacuum mode
+let vacuumCaptureTimer = 0;
+const VACUUM_CAPTURE_INTERVAL = 0.25; // seconds between each capture tick
+const VACUUM_RANGE_MULT = 1.5;  // multiplier over net range
+const VACUUM_ANGLE_MULT = 1.5;  // multiplier over net angle
+const vacuumParticles = [];
+
+function createVacuum() {
+  // Nozzle body (cylinder)
+  const nozzleMat = new THREE.MeshStandardMaterial({color:0x5566AA, roughness:0.4, metalness:0.6});
+  const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.08,0.55,8), nozzleMat);
+  nozzle.rotation.set(Math.PI/2.3,0,0);
+  nozzle.position.set(0,-0.05,-0.25);
+  vacuumGroup.add(nozzle);
+
+  // Wide mouth (torus at the end)
+  const mouthMat = new THREE.MeshStandardMaterial({color:0x3344AA, roughness:0.3, metalness:0.7});
+  const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.14,0.02,8,16), mouthMat);
+  mouth.position.set(0,0.10,-0.62);
+  vacuumGroup.add(mouth);
+
+  // Inner dark circle (suction opening)
+  const innerMat = new THREE.MeshBasicMaterial({color:0x111133, transparent:true, opacity:0.7});
+  const inner = new THREE.Mesh(new THREE.CircleGeometry(0.12,16), innerMat);
+  inner.position.set(0,0.10,-0.63);
+  vacuumGroup.add(inner);
+
+  vacuumGroup.position.set(isMobile?0.3:0.45, isMobile?-0.35:-0.4, 0);
+  if(isMobile) vacuumGroup.scale.set(1.15,1.15,1.15);
+  vacuumGroup.visible = false;
+  camera.add(vacuumGroup);
+}
+
+function toggleVacuumMode() {
+  if(!state.upgrades.catVacuum || state.phase!=='PLAYING' || state.expanding) return;
+  // If cannon mode is on, turn it off first
+  if(state.cannonMode) {
+    state.cannonMode = false;
+    updateCannonDisplay();
+  }
+  state.vacuumMode = !state.vacuumMode;
+  vacuumActive = false;
+  vacuumCaptureTimer = 0;
+  netGroup.visible = !state.vacuumMode && !state.cannonMode;
+  vacuumGroup.visible = state.vacuumMode;
+  updateVacuumDisplay();
+  if(state.vacuumMode) showCenterMsg("Vacuum mode! Hold click to suck up cats");
+  else hideCenterMsg();
+}
+
+function startVacuum() {
+  if(!state.vacuumMode || state.phase!=='PLAYING' || state.expanding) return;
+  vacuumActive = true;
+  vacuumCaptureTimer = 0; // capture immediately on first tick
+}
+
+function stopVacuum() {
+  vacuumActive = false;
+  vacuumCaptureTimer = 0;
+}
+
+function updateVacuum(dt) {
+  if(!state.vacuumMode || !vacuumActive) {
+    // Clear particles when not active
+    clearVacuumParticles();
+    return;
+  }
+
+  vacuumCaptureTimer -= dt;
+  if(vacuumCaptureTimer <= 0) {
+    vacuumCaptureTimer = VACUUM_CAPTURE_INTERVAL;
+    vacuumCapture();
+  }
+
+  // Spawn suction particles
+  if(Math.random() < 0.6) spawnVacuumParticle();
+  updateVacuumParticles(dt);
+
+  // Gentle shake effect on the vacuum nozzle
+  vacuumGroup.rotation.x = (Math.random()-0.5)*0.02;
+  vacuumGroup.rotation.y = (Math.random()-0.5)*0.02;
+}
+
+function vacuumCapture() {
+  if(state.catsInBag >= getMaxBag()){showCenterMsg("Bag is full! Return to crate"); return;}
+  const fw = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+  fw.y=0; if(fw.length()>0.001) fw.normalize();
+  const pP = new THREE.Vector3(camera.position.x,0,camera.position.z);
+  const range = getNetRange() * VACUUM_RANGE_MULT;
+  const angle = getNetAngle() * VACUUM_ANGLE_MULT;
+  let closest = null, cD = Infinity;
+  for(const cat of cats){
+    if(cat.caught) continue;
+    const tC = new THREE.Vector3(cat.mesh.position.x,0,cat.mesh.position.z).sub(pP);
+    const d = tC.length();
+    if(d > range) continue;
+    if(d > 0.01){ tC.normalize(); if(Math.acos(Math.min(fw.dot(tC),1)) > angle) continue; }
+    if(d < cD){ cD=d; closest=cat; }
+  }
+  if(closest) {
+    catchCat(closest);
+    playAsset('collect', 0.3, 1.2 + Math.random()*0.3); // slightly pitched up for vacuum feel
+  }
+}
+
+function spawnVacuumParticle() {
+  const pMat = new THREE.MeshBasicMaterial({color:0x88AAFF, transparent:true, opacity:0.5});
+  const pMesh = new THREE.Mesh(new THREE.SphereGeometry(0.02,4,4), pMat);
+  // Spawn in front of camera, spread randomly
+  const fw = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+  const right = new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion);
+  const up = new THREE.Vector3(0,1,0);
+  const dist = 1.5 + Math.random() * 3;
+  const spread = (Math.random()-0.5) * 1.5;
+  const vSpread = (Math.random()-0.5) * 0.8;
+  pMesh.position.copy(camera.position)
+    .add(fw.clone().multiplyScalar(dist))
+    .add(right.clone().multiplyScalar(spread))
+    .add(up.clone().multiplyScalar(vSpread));
+  scene.add(pMesh);
+  vacuumParticles.push({ mesh: pMesh, age: 0, maxAge: 0.4 + Math.random()*0.3 });
+}
+
+function updateVacuumParticles(dt) {
+  const target = camera.position.clone().add(new THREE.Vector3(0,0,-0.5).applyQuaternion(camera.quaternion));
+  for(let i = vacuumParticles.length-1; i >= 0; i--) {
+    const p = vacuumParticles[i];
+    p.age += dt;
+    if(p.age >= p.maxAge) {
+      scene.remove(p.mesh);
+      vacuumParticles.splice(i,1);
+      continue;
+    }
+    // Move particle toward vacuum nozzle
+    const dir = target.clone().sub(p.mesh.position).normalize();
+    p.mesh.position.add(dir.multiplyScalar(dt * 8));
+    p.mesh.material.opacity = 0.5 * (1 - p.age/p.maxAge);
+    const s = 0.02 * (1 - p.age/p.maxAge * 0.5);
+    p.mesh.scale.set(s/0.02, s/0.02, s/0.02);
+  }
+}
+
+function clearVacuumParticles() {
+  for(const p of vacuumParticles) scene.remove(p.mesh);
+  vacuumParticles.length = 0;
+}
+
+function updateVacuumDisplay() {
+  const el = document.getElementById('vacuum-toggle');
+  if(el) el.classList.toggle('active', state.vacuumMode);
 }
