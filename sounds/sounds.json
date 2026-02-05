@@ -39,4 +39,8 @@
                     "sounds/purring/purring_2.mp3",
                     "sounds/purring/purring_3.mp3"
                 ]
+     "vacuum": [
+         "sounds/vacuum/vacuum_0.mp3"
+     ]
 }
+
