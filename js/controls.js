@@ -15,9 +15,11 @@ function requestPointerLock(){if(!isMobile) renderer.domElement.requestPointerLo
 const mobileInput={moveX:0,moveY:0,lookX:0,lookY:0};
 let aimButtonHeld=false;
 // Double-tap tracking for left joystick tool activation
-let lastJoystickTouchEnd=0;
+let lastTapEnd=0;       // timestamp of last short-tap touchend
+let lastTapStart=0;     // timestamp of last touchstart (to measure tap duration)
 let doubleTapToolActive=false;
-const DOUBLE_TAP_THRESHOLD=300; // ms window for double-tap detection
+const DOUBLE_TAP_THRESHOLD=300; // ms window between taps for double-tap detection
+const MAX_TAP_DURATION=200;     // max ms a single tap can last to count as a "tap"
 function setupMobileControls(){
   const btnSwing=document.getElementById('btn-swing'),btnDeposit=document.getElementById('btn-deposit'),hudPause=document.getElementById('hud-pause');
   function makeDJ(zId,bId,kId,onM,onE,onStart){
@@ -47,20 +49,25 @@ function setupMobileControls(){
   },()=>{
     if(state.settings.controllerMode==='goldenEye') geOnEnd();
     else{mobileInput.moveX=0;mobileInput.moveY=0;}
-    // Record touch-end time for double-tap detection
-    lastJoystickTouchEnd=Date.now();
+    // Only record as a valid tap-end if touch was short (not a drag/hold)
+    const now=Date.now();
+    if(!doubleTapToolActive && now-lastTapStart<MAX_TAP_DURATION){
+      lastTapEnd=now;
+    }
     // Deactivate held tools if double-tap tool was active
     if(doubleTapToolActive){
       doubleTapToolActive=false;
+      lastTapEnd=0; // Reset so release after tool use doesn't chain into next detection
       if(state.vacuumMode) stopVacuum();
       if(state.cannonMode) stopCannonFire();
     }
   },()=>{
-    // onStart callback: check for double-tap
+    // onStart callback: record start time and check for double-tap
+    lastTapStart=Date.now();
     if(state.phase!=='PLAYING'||state.expanding) return;
-    const now=Date.now();
-    if(now-lastJoystickTouchEnd<DOUBLE_TAP_THRESHOLD){
+    if(lastTapEnd>0 && lastTapStart-lastTapEnd<DOUBLE_TAP_THRESHOLD){
       doubleTapToolActive=true;
+      lastTapEnd=0; // Reset to prevent repeated false triggers
       if(state.cannonMode) startCannonFire();
       else if(state.vacuumMode) startVacuum();
       else startSwing();
