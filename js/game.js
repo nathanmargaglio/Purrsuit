@@ -35,6 +35,7 @@ function endDay(){
   state.phase='DAY_END';
   state.catsInBag=0; state.cannonMode=false; state.vacuumMode=false;
   vacuumActive=false;
+  arcLine.visible=false; landingMarker.visible=false;
   clearProjectileCats();
   clearVacuumParticles();
   clearToyMice();
@@ -111,6 +112,7 @@ function gameLoop(time){
     updateNet(dt);
     updateVacuum(dt);
     updateProjectileCats(dt);
+    updateCannonArc();
     updateToyMice(dt);
     if(!state.expanding) updateRingDisplay();
     if(crateMesh){const r=crateMesh.children[crateMesh.children.length-1];r.material.opacity=0.2+Math.sin(time*0.003)*0.1;}

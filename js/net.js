@@ -43,6 +43,90 @@ const CANNON_SPEED = 18;
 const CANNON_GRAVITY = 12;
 const CRATE_HIT_RADIUS = 1.8;
 
+// ---- Trajectory Arc Indicator ----
+const ARC_POINTS = 40;
+const ARC_TIME_STEP = 0.05; // seconds per sample point
+
+const arcLineMat = new THREE.LineDashedMaterial({ color: 0xFFDD66, dashSize: 0.3, gapSize: 0.15, transparent: true, opacity: 0.7 });
+const arcLineGeo = new THREE.BufferGeometry();
+arcLineGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(ARC_POINTS * 3), 3));
+const arcLine = new THREE.Line(arcLineGeo, arcLineMat);
+arcLine.frustumCulled = false;
+arcLine.visible = false;
+scene.add(arcLine);
+
+// Landing marker (ring on the ground)
+const landingMarkerGeo = new THREE.RingGeometry(0.3, 0.5, 24);
+const landingMarkerMat = new THREE.MeshBasicMaterial({ color: 0xFF6644, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
+const landingMarker = new THREE.Mesh(landingMarkerGeo, landingMarkerMat);
+landingMarker.rotation.x = -Math.PI / 2;
+landingMarker.position.y = 0.02;
+landingMarker.visible = false;
+scene.add(landingMarker);
+
+function updateCannonArc() {
+  if (!state.cannonMode || state.phase !== 'PLAYING') {
+    arcLine.visible = false;
+    landingMarker.visible = false;
+    return;
+  }
+
+  const startPos = camera.position.clone();
+  startPos.y -= 0.2;
+  const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).normalize();
+  const vel = dir.multiplyScalar(CANNON_SPEED);
+
+  const positions = arcLineGeo.attributes.position;
+  let vx = vel.x, vy = vel.y, vz = vel.z;
+  let px = startPos.x, py = startPos.y, pz = startPos.z;
+  let landX = px, landZ = pz;
+  let landed = false;
+  let usedPoints = ARC_POINTS;
+
+  for (let i = 0; i < ARC_POINTS; i++) {
+    positions.setXYZ(i, px, py, pz);
+
+    vy -= CANNON_GRAVITY * ARC_TIME_STEP;
+    px += vx * ARC_TIME_STEP;
+    py += vy * ARC_TIME_STEP;
+    pz += vz * ARC_TIME_STEP;
+
+    if (py <= 0 && !landed) {
+      landed = true;
+      landX = px;
+      landZ = pz;
+      // Add the ground-level landing point as the next point
+      if (i + 1 < ARC_POINTS) {
+        positions.setXYZ(i + 1, px, 0, pz);
+        usedPoints = i + 2;
+      } else {
+        positions.setXYZ(i, px, 0, pz);
+        usedPoints = i + 1;
+      }
+      // Fill remaining with the landing point to avoid stale data
+      for (let j = usedPoints; j < ARC_POINTS; j++) {
+        positions.setXYZ(j, px, 0, pz);
+      }
+      break;
+    }
+  }
+
+  positions.needsUpdate = true;
+  arcLineGeo.setDrawRange(0, usedPoints);
+  arcLine.computeLineDistances();
+  arcLine.visible = true;
+
+  if (landed) {
+    landingMarker.position.x = landX;
+    landingMarker.position.z = landZ;
+    // Pulse the opacity for visibility
+    landingMarker.material.opacity = 0.35 + Math.sin(Date.now() * 0.005) * 0.15;
+    landingMarker.visible = true;
+  } else {
+    landingMarker.visible = false;
+  }
+}
+
 function toggleCannonMode() {
   if(!state.upgrades.catCannon || state.phase!=='PLAYING' || state.expanding) return;
   // Turn off vacuum mode if active
@@ -56,7 +140,7 @@ function toggleCannonMode() {
   netGroup.visible = !state.cannonMode;
   updateCannonDisplay();
   if(state.cannonMode) showCenterMsg("Cannon mode! Click to shoot cats");
-  else hideCenterMsg();
+  else { arcLine.visible = false; landingMarker.visible = false; hideCenterMsg(); }
 }
 
 function shootCat() {
@@ -191,6 +275,8 @@ function toggleVacuumMode() {
   // If cannon mode is on, turn it off first
   if(state.cannonMode) {
     state.cannonMode = false;
+    arcLine.visible = false;
+    landingMarker.visible = false;
     updateCannonDisplay();
   }
   state.vacuumMode = !state.vacuumMode;
