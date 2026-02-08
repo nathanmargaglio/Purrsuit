@@ -6,6 +6,35 @@ function updateRingDisplay(){document.getElementById('hud-ring').textContent=`Ri
 function showCenterMsg(t){const el=document.getElementById('center-msg');el.textContent=t;el.classList.add('visible');}
 function hideCenterMsg(){document.getElementById('center-msg').classList.remove('visible');}
 function showCatchFlash(){const el=document.getElementById('catch-flash');el.classList.remove('show');void el.offsetWidth;el.classList.add('show');}
+function showComboPopup(count){
+  const el=document.getElementById('combo-popup');
+  el.classList.remove('show','show-big','show-mega');
+  void el.offsetWidth;
+  el.textContent='x'+count;
+  // Escalate size, color and animation based on combo count
+  if(count>=6){
+    el.style.fontSize=Math.min(4+count*0.4,8)+'rem';
+    el.style.color='#FF4444';
+    el.style.textShadow='3px 3px 8px rgba(255,0,0,0.5), 0 0 20px rgba(255,100,0,0.4)';
+    el.classList.add('show-mega');
+  } else if(count>=3){
+    el.style.fontSize=(2.5+count*0.3)+'rem';
+    el.style.color='#FFB347';
+    el.style.textShadow='2px 2px 6px rgba(255,150,0,0.4), 0 0 12px rgba(255,200,0,0.3)';
+    el.classList.add('show-big');
+  } else {
+    el.style.fontSize='2.2rem';
+    el.style.color='#4ADE80';
+    el.style.textShadow='2px 2px 4px rgba(0,0,0,0.5)';
+    el.classList.add('show');
+  }
+}
+function updateCaptureCombo(dt){
+  if(state.captureComboTimer>0){
+    state.captureComboTimer-=dt;
+    if(state.captureComboTimer<=0){state.captureCombo=0;state.captureComboTimer=0;}
+  }
+}
 function showDayIntro(){const el=document.getElementById('day-intro');el.textContent=`Day ${state.day}`;el.classList.remove('show');void el.offsetWidth;el.classList.add('show');}
 
 // ===================== UPGRADES =====================
