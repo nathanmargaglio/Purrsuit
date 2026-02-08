@@ -51,7 +51,7 @@ function renderUpgradeCards(){
     {key:'netSize',name:'🥅 Net Size',desc:()=>`Range: ${getNetRange().toFixed(1)} → ${(getNetRange()+1).toFixed(1)}`},
     {key:'walkSpeed',name:'👟 Walk Speed',desc:()=>`Speed: ${getMoveSpeed().toFixed(1)} → ${(getMoveSpeed()+1).toFixed(1)}`},
     {key:'bagSize',name:'🎒 Bag Size',desc:()=>`Capacity: ${getMaxBag()} → ${getMaxBag()+1}`},
-    {key:'crateSize',name:'📦 Crate Size',desc:()=>`Deposit radius: ${getCrateRadius().toFixed(1)} → ${(getCrateRadius()+1.0).toFixed(1)}`},
+    {key:'crateSize',name:'📦 Crate Size',desc:()=>`Deposit radius: ${getCrateRadius().toFixed(1)} → ${(BASE_CRATE_HIT_RADIUS*(1+(state.upgrades.crateSize+1)*0.5)).toFixed(1)}`},
   ];
   c.innerHTML='';
   for(const up of ups){
