@@ -311,9 +311,11 @@ const vacuumGroup = new THREE.Group();
 let vacuumActive = false; // true while action button is held in vacuum mode
 let vacuumCaptureTimer = 0;
 const VACUUM_CAPTURE_INTERVAL = 0.25; // seconds between each capture tick
-const VACUUM_RANGE_MULT = 1.5;  // multiplier over net range
-const VACUUM_ANGLE_MULT = 1.5;  // multiplier over net angle
+const VACUUM_RANGE_MULT = 1.5;  // base multiplier over net base range
+const VACUUM_ANGLE_MULT = 1.5;  // base multiplier over net base angle
 const vacuumParticles = [];
+function getVacuumRange() { return 3.5 * VACUUM_RANGE_MULT + state.upgrades.vacuumStrength * 1.0; }
+function getVacuumAngle() { return 0.45 * VACUUM_ANGLE_MULT + state.upgrades.vacuumStrength * 0.1; }
 
 function createVacuum() {
   // Nozzle body (cylinder)
@@ -401,8 +403,8 @@ function vacuumCapture() {
   const fw = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
   fw.y=0; if(fw.length()>0.001) fw.normalize();
   const pP = new THREE.Vector3(camera.position.x,0,camera.position.z);
-  const range = getNetRange() * VACUUM_RANGE_MULT;
-  const angle = getNetAngle() * VACUUM_ANGLE_MULT;
+  const range = getVacuumRange();
+  const angle = getVacuumAngle();
   let closest = null, cD = Infinity;
   for(const cat of cats){
     if(cat.caught) continue;

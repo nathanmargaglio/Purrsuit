@@ -2,7 +2,7 @@
 const state = {
   phase: 'MENU', day: 1, timeLeft: DAY_DURATION, // updated by getDayDuration() at startDay
   dayScore: 0, totalScore: 0, currency: 0, catsInBag: 0,
-  upgrades: { netSize: 0, walkSpeed: 0, bagSize: 0, dayTime: 0, catCannon: 0, catVacuum: 0, crateSize: 0 },
+  upgrades: { netSize: 0, walkSpeed: 0, bagSize: 0, dayTime: 0, catCannon: 0, catVacuum: 0, crateSize: 0, vacuumStrength: 0 },
   inventory: { toyMouse: 0 },
   paused: false,
   settings: { lookSensitivity: 2.5, deadZone: 0.15, controllerMode: 'dualAnalog' },
@@ -22,7 +22,7 @@ function getMoveSpeed() { return 4.0 + state.upgrades.walkSpeed * 1.0; }
 function getMaxBag() { return 1 + state.upgrades.bagSize; }
 function getDayDuration() { return DAY_DURATION + state.upgrades.dayTime * 10; }
 function getCrateRadius() { return BASE_CRATE_HIT_RADIUS * (1 + state.upgrades.crateSize * 0.5); }
-function getUpgradeCost(type) { if (type === 'catCannon' || type === 'catVacuum') return 16; if (type === 'dayTime') return 10 * Math.pow(10, state.upgrades.dayTime); const l = state.upgrades[type]; return (l + 1) * 2 + Math.floor(l * 0.5); }
+function getUpgradeCost(type) { if (type === 'catCannon' || type === 'catVacuum') return 16; if (type === 'dayTime') return 10 * Math.pow(10, state.upgrades.dayTime); const l = state.upgrades[type] || 0; return (l + 1) * 2 + Math.floor(l * 0.5); }
 function getCatCountForRing(ring) { return Math.min(8 * Math.pow(2, ring), 128); }
 function getCatDifficulty(ring) { return 1 + ring * 0.35; }
 
@@ -59,6 +59,7 @@ function loadGame() {
       state.upgrades.catCannon = data.upgrades.catCannon || 0;
       state.upgrades.catVacuum = data.upgrades.catVacuum || 0;
       state.upgrades.crateSize = data.upgrades.crateSize || 0;
+      state.upgrades.vacuumStrength = data.upgrades.vacuumStrength || 0;
     }
     if (data.inventory) {
       state.inventory.toyMouse = data.inventory.toyMouse || 0;
