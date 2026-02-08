@@ -87,7 +87,8 @@ function setupMobileControls(){
   if(btnCannon) btnCannon.addEventListener('touchstart',e=>{e.preventDefault();toggleCannonMode();},{passive:false});
   const btnVacuum=document.getElementById('btn-vacuum');
   if(btnVacuum) btnVacuum.addEventListener('touchstart',e=>{e.preventDefault();toggleVacuumMode();},{passive:false});
-  btnDeposit.addEventListener('touchstart',e=>{e.preventDefault();if(isNearCrate())depositCats();},{passive:false});
+  // Deposit button no longer needed — auto-deposit handles it
+  if(btnDeposit) btnDeposit.style.display='none';
   const btnMouse=document.getElementById('btn-mouse');
   if(btnMouse) btnMouse.addEventListener('touchstart',e=>{e.preventDefault();throwToyMouse();},{passive:false});
   hudPause.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();state.paused=true;document.getElementById('blocker').classList.remove('hidden');document.getElementById('blocker-prompt').textContent='Tap to Resume';document.getElementById('blocker-subtitle').textContent='Game paused';if(isMobile)document.getElementById('settings-panel').classList.add('visible');},{passive:false});
@@ -146,9 +147,9 @@ function updatePlayer(dt) {
   camera.rotation.y = yaw + (camShakeIntensity>0 ? (Math.random()-0.5)*camShakeIntensity : 0);
   camera.rotation.x = pitch + (camShakeIntensity>0 ? (Math.random()-0.5)*camShakeIntensity*0.5 : 0);
 
-  if(!isMobile&&keys['KeyE']&&isNearCrate()) depositCats();
+  // Auto-deposit: automatically deposit cats when near the crate
+  if(isNearCrate()&&state.catsInBag>0) depositCats();
   if(isMobile){
-    document.getElementById('btn-deposit').classList.toggle('visible',isNearCrate()&&state.catsInBag>0);
     const bc=document.getElementById('btn-cannon');
     if(bc) bc.classList.toggle('visible',!!state.upgrades.catCannon);
     const bv=document.getElementById('btn-vacuum');
@@ -156,9 +157,8 @@ function updatePlayer(dt) {
     const bm=document.getElementById('btn-mouse');
     if(bm) bm.classList.toggle('visible',state.inventory.toyMouse>0);
   }
-  const nc=isNearCrate();
   if(state.cannonMode){if(state.catsInBag>0) showCenterMsg(isMobile?"Cannon mode! Double-tap stick to shoot":"Cannon mode! Click to shoot · Q to switch"); else showCenterMsg(isMobile?"No cats to shoot!":"No cats to shoot! Q to switch back");}
   else if(state.vacuumMode){if(state.catsInBag>=getMaxBag()) showCenterMsg(isMobile?"Bag full! Return to crate":"Bag full! Return to crate · V to switch"); else showCenterMsg(isMobile?"Vacuum mode! Double-tap & hold stick to suck":"Vacuum mode! Hold click to suck · V to switch");}
-  else if(!isMobile){const extras=[];if(state.upgrades.catCannon) extras.push("Q for cannon");if(state.upgrades.catVacuum) extras.push("V for vacuum");if(state.inventory.toyMouse>0) extras.push("T for toy mouse");const suffix=extras.length?" · "+extras.join(" · "):"";if(nc&&state.catsInBag>0) showCenterMsg("Press E to deposit"+suffix); else if(state.catsInBag>=getMaxBag()) showCenterMsg("Bag full! Return to crate"+(state.upgrades.catCannon?" or use cannon (Q)":"")); else hideCenterMsg();}
-  else{if(state.catsInBag>=getMaxBag()&&!nc) showCenterMsg("Bag full! Return to crate"); else hideCenterMsg();}
+  else if(!isMobile){const extras=[];if(state.upgrades.catCannon) extras.push("Q for cannon");if(state.upgrades.catVacuum) extras.push("V for vacuum");if(state.inventory.toyMouse>0) extras.push("T for toy mouse");const suffix=extras.length?" · "+extras.join(" · "):"";if(state.catsInBag>=getMaxBag()) showCenterMsg("Bag full! Return to crate"+(state.upgrades.catCannon?" or use cannon (Q)":"")); else hideCenterMsg();}
+  else{if(state.catsInBag>=getMaxBag()) showCenterMsg("Bag full! Return to crate"); else hideCenterMsg();}
 }
