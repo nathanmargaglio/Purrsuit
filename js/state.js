@@ -23,7 +23,7 @@ function getMaxBag() { return 1 + state.upgrades.bagSize; }
 function getDayDuration() { return DAY_DURATION + state.upgrades.dayTime * 10; }
 function getCrateRadius() { return BASE_CRATE_HIT_RADIUS * (1 + state.upgrades.crateSize * 0.5); }
 function getUpgradeCost(type) { if (type === 'catCannon' || type === 'catVacuum') return 16; if (type === 'dayTime') return 10 * Math.pow(10, state.upgrades.dayTime); const l = state.upgrades[type] || 0; return (l + 1) * 2 + Math.floor(l * 0.5); }
-function getCatCountForRing(ring) { return Math.min(8 * Math.pow(2, ring), 128); }
+function getCatCountForRing(ring) { const exp = 8 * Math.pow(2, ring); return exp <= 128 ? exp : 128 * (ring - 3); }
 function getCatDifficulty(ring) { return 1 + ring * 0.35; }
 
 // ===================== SAVE / LOAD =====================
