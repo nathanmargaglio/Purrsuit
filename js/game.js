@@ -23,6 +23,9 @@ function startDay(){
   const vt=document.getElementById('vacuum-toggle');
   if(vt){vt.style.display=state.upgrades.catVacuum?'block':'none';vt.classList.remove('active');}
   netGroup.visible=true;
+  cannonGroup.visible=false;
+  cannonHeld=false;
+  cannonFireTimer=0;
   vacuumGroup.visible=false;
   vacuumActive=false;
   updateInventoryDisplay();
@@ -34,7 +37,9 @@ function startDay(){
 function endDay(){
   state.phase='DAY_END';
   state.catsInBag=0; state.cannonMode=false; state.vacuumMode=false;
+  cannonHeld=false; cannonFireTimer=0;
   vacuumActive=false;
+  cannonGroup.visible=false;
   arcLine.visible=false; landingMarker.visible=false;
   clearProjectileCats();
   clearVacuumParticles();
@@ -89,6 +94,7 @@ if(hasSavedGame()){
 buildRoomUpToRing(0);
 createCrate();
 createNet();
+createCannon();
 createVacuum();
 if(isMobile){setupMobileControls();applyControllerMode();}
 loadSoundManifest();
@@ -111,6 +117,7 @@ function gameLoop(time){
     for(const cat of cats) updateCat(cat,dt,pp);
     updateNet(dt);
     updateVacuum(dt);
+    updateCannonFire(dt);
     updateProjectileCats(dt);
     updateCannonArc();
     updateToyMice(dt);

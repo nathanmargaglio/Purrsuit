@@ -3,8 +3,8 @@ const keys={};let yaw=0,pitch=0,pointerLocked=false;
 document.addEventListener('keydown',e=>{keys[e.code]=true;});
 document.addEventListener('keyup',e=>{keys[e.code]=false;});
 document.addEventListener('mousemove',e=>{if(!pointerLocked||isMobile)return;yaw-=e.movementX*0.002;pitch-=e.movementY*0.002;pitch=Math.max(-Math.PI/2.2,Math.min(Math.PI/2.2,pitch));});
-document.addEventListener('mousedown',e=>{if(e.button===0&&pointerLocked&&state.phase==='PLAYING'&&!isMobile){if(state.cannonMode) shootCat(); else if(state.vacuumMode) startVacuum(); else startSwing();}});
-document.addEventListener('mouseup',e=>{if(e.button===0&&state.vacuumMode) stopVacuum();});
+document.addEventListener('mousedown',e=>{if(e.button===0&&pointerLocked&&state.phase==='PLAYING'&&!isMobile){if(state.cannonMode) startCannonFire(); else if(state.vacuumMode) startVacuum(); else startSwing();}});
+document.addEventListener('mouseup',e=>{if(e.button===0){if(state.vacuumMode) stopVacuum(); if(state.cannonMode) stopCannonFire();}});
 document.addEventListener('keydown',e=>{if(e.code==='KeyQ'&&!e.repeat&&state.phase==='PLAYING'&&state.upgrades.catCannon) toggleCannonMode();});
 document.addEventListener('keydown',e=>{if(e.code==='KeyV'&&!e.repeat&&state.phase==='PLAYING'&&state.upgrades.catVacuum) toggleVacuumMode();});
 document.addEventListener('keydown',e=>{if(e.code==='KeyT'&&!e.repeat&&state.phase==='PLAYING') throwToyMouse();});
@@ -51,9 +51,9 @@ function setupMobileControls(){
     btnAim.addEventListener('touchend',e=>{aimButtonHeld=false;btnAim.classList.remove('held');mobileInput.lookX=0;mobileInput.lookY=0;});
     btnAim.addEventListener('touchcancel',e=>{aimButtonHeld=false;btnAim.classList.remove('held');mobileInput.lookX=0;mobileInput.lookY=0;});
   }
-  btnSwing.addEventListener('touchstart',e=>{e.preventDefault();if(state.cannonMode) shootCat(); else if(state.vacuumMode) startVacuum(); else startSwing();},{passive:false});
-  btnSwing.addEventListener('touchend',e=>{if(state.vacuumMode) stopVacuum();});
-  btnSwing.addEventListener('touchcancel',e=>{if(state.vacuumMode) stopVacuum();});
+  btnSwing.addEventListener('touchstart',e=>{e.preventDefault();if(state.cannonMode) startCannonFire(); else if(state.vacuumMode) startVacuum(); else startSwing();},{passive:false});
+  btnSwing.addEventListener('touchend',e=>{if(state.vacuumMode) stopVacuum(); if(state.cannonMode) stopCannonFire();});
+  btnSwing.addEventListener('touchcancel',e=>{if(state.vacuumMode) stopVacuum(); if(state.cannonMode) stopCannonFire();});
   const btnCannon=document.getElementById('btn-cannon');
   if(btnCannon) btnCannon.addEventListener('touchstart',e=>{e.preventDefault();toggleCannonMode();},{passive:false});
   const btnVacuum=document.getElementById('btn-vacuum');
