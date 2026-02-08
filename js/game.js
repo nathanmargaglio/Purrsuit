@@ -1,8 +1,8 @@
 // ===================== GAME LOGIC =====================
 function startDay(){
   state.phase='PLAYING'; state.paused=false;
-  state.timeLeft=DAY_DURATION; state.dayScore=0; state.catsInBag=0;
-  state.expanding=false; state.cannonMode=false; state.vacuumMode=false; state.captureCombo=0; state.captureComboTimer=0; expandAnim=null; camShakeIntensity=0;
+  state.timeLeft=getDayDuration(); state.dayScore=0; state.catsInBag=0;
+  state.expanding=false; state.cannonMode=false; state.vacuumMode=false; expandAnim=null; camShakeIntensity=0;
 
   state.activeDayRing = state.progressRing;
 

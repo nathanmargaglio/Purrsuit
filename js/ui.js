@@ -60,6 +60,15 @@ function renderUpgradeCards(){
     if(can) card.querySelector('.upgrade-btn').addEventListener('click',()=>{state.currency-=cost;state.upgrades[up.key]++;document.getElementById('currency-display').textContent=state.currency;playUpgradeSound();saveGame();renderUpgradeCards();});
     c.appendChild(card);
   }
+  // Day Time upgrade
+  {
+    const cost=getUpgradeCost('dayTime'),can=state.currency>=cost;
+    const cur=getDayDuration(),next=cur+10;
+    const card=document.createElement('div');card.className='upgrade-card'+(can?'':' disabled');
+    card.innerHTML=`<div class="upgrade-info"><div class="upgrade-name">⏱️ Day Time <span class="upgrade-level">Lv ${state.upgrades.dayTime}</span></div><div class="upgrade-desc">Time: ${cur}s → ${next}s</div></div><button class="upgrade-btn ${can?'':'cant-afford'}">${cost} 🐱</button>`;
+    if(can) card.querySelector('.upgrade-btn').addEventListener('click',()=>{state.currency-=cost;state.upgrades.dayTime++;document.getElementById('currency-display').textContent=state.currency;playUpgradeSound();saveGame();renderUpgradeCards();});
+    c.appendChild(card);
+  }
   // Cat Cannon one-time unlock
   if(!state.upgrades.catCannon){
     const cost=getUpgradeCost('catCannon'),can=state.currency>=cost;
