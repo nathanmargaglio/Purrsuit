@@ -14,6 +14,13 @@
   <button class="continue-btn hidden" id="continue-btn">Continue (Day <span id="continue-day">1</span>)</button>
   <div class="settings-panel" id="settings-panel">
     <div class="settings-title">⚙️ Controls</div>
+    <div class="setting-row controller-mode-row" id="controller-mode-row">
+      <span class="setting-label">Controller</span>
+      <div class="controller-toggle" id="controller-toggle">
+        <button class="controller-option active" id="opt-dualAnalog" data-mode="dualAnalog">Dual Analog</button>
+        <button class="controller-option" id="opt-goldenEye" data-mode="goldenEye">GoldenEye</button>
+      </div>
+    </div>
     <label class="setting-row"><span class="setting-label">Look Sensitivity</span><input type="range" id="setting-sensitivity" min="1" max="5" step="0.25" value="2.5"><span class="setting-value" id="sensitivity-value">2.5</span></label>
     <label class="setting-row"><span class="setting-label">Stick Dead Zone</span><input type="range" id="setting-deadzone" min="0.05" max="0.35" step="0.05" value="0.15"><span class="setting-value" id="deadzone-value">15%</span></label>
     <div class="setting-row fullscreen-row" id="fullscreen-row"><button class="fullscreen-btn" id="fullscreen-btn">⛶ Enter Full Screen</button></div>
@@ -40,6 +47,7 @@
   <div class="mobile-btn btn-cannon" id="btn-cannon">🔫</div>
   <div class="mobile-btn btn-vacuum" id="btn-vacuum">🌀</div>
   <div class="mobile-btn btn-mouse" id="btn-mouse">🐭</div>
+  <div class="mobile-btn btn-aim" id="btn-aim"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg></div>
 </div>
 <div class="day-intro" id="day-intro"></div>
 <div id="upgrade-screen">

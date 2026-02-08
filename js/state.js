@@ -5,7 +5,7 @@ const state = {
   upgrades: { netSize: 0, walkSpeed: 0, bagSize: 0, catCannon: 0, catVacuum: 0 },
   inventory: { toyMouse: 0 },
   paused: false,
-  settings: { lookSensitivity: 2.5, deadZone: 0.15 },
+  settings: { lookSensitivity: 2.5, deadZone: 0.15, controllerMode: 'dualAnalog' },
   progressRing: 0,
   activeDayRing: 0,
   expanding: false,
@@ -57,6 +57,7 @@ function loadGame() {
     if (data.settings) {
       state.settings.lookSensitivity = data.settings.lookSensitivity ?? 2.5;
       state.settings.deadZone = data.settings.deadZone ?? 0.15;
+      state.settings.controllerMode = data.settings.controllerMode ?? 'dualAnalog';
     }
     return true;
   } catch(e) { return false; }
