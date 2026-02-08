@@ -36,7 +36,7 @@ function catchCat(cat){
   playCatchSound(comboPitch);
   updateBagDisplay();
 }
-function isNearCrate(){const dx=camera.position.x,dz=camera.position.z;return Math.sqrt(dx*dx+dz*dz)<2.0;}
+function isNearCrate(){const dx=camera.position.x,dz=camera.position.z;return Math.sqrt(dx*dx+dz*dz)<getCrateRadius();}
 
 function depositCats() {
   if(state.catsInBag===0) return;
@@ -54,6 +54,62 @@ const projectileCats = [];
 const CANNON_SPEED = 18;
 const CANNON_GRAVITY = 12;
 const BASE_CRATE_HIT_RADIUS = 1.8;
+let cannonHeld = false;
+let cannonFireTimer = 0;
+const CANNON_FIRE_INTERVAL = 0.2; // seconds between rapid fire shots
+
+const cannonGroup = new THREE.Group();
+function createCannon() {
+  // Barrel (main tube)
+  const barrelMat = new THREE.MeshStandardMaterial({color:0x555555, roughness:0.3, metalness:0.8});
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.06,0.6,8), barrelMat);
+  barrel.rotation.set(Math.PI/2.3,0,0);
+  barrel.position.set(0,-0.02,-0.3);
+  cannonGroup.add(barrel);
+
+  // Muzzle flare ring
+  const muzzleMat = new THREE.MeshStandardMaterial({color:0xFF8800, roughness:0.5, metalness:0.3});
+  const muzzle = new THREE.Mesh(new THREE.TorusGeometry(0.05,0.015,6,12), muzzleMat);
+  muzzle.position.set(0,0.12,-0.63);
+  cannonGroup.add(muzzle);
+
+  // Handle / grip
+  const gripMat = new THREE.MeshStandardMaterial({color:0x8B5A2B, roughness:0.8});
+  const grip = new THREE.Mesh(new THREE.BoxGeometry(0.04,0.15,0.06), gripMat);
+  grip.position.set(0,-0.14,-0.15);
+  grip.rotation.x = 0.3;
+  cannonGroup.add(grip);
+
+  // Hopper (box on top to hold cats)
+  const hopperMat = new THREE.MeshStandardMaterial({color:0x666666, roughness:0.4, metalness:0.6});
+  const hopper = new THREE.Mesh(new THREE.BoxGeometry(0.08,0.08,0.12), hopperMat);
+  hopper.position.set(0,0.06,-0.22);
+  cannonGroup.add(hopper);
+
+  cannonGroup.position.set(isMobile?0.3:0.45, isMobile?-0.35:-0.4, 0);
+  if(isMobile) cannonGroup.scale.set(1.15,1.15,1.15);
+  cannonGroup.visible = false;
+  camera.add(cannonGroup);
+}
+
+function startCannonFire() {
+  if(!state.cannonMode || state.phase!=='PLAYING' || state.expanding) return;
+  cannonHeld = true;
+  cannonFireTimer = 0; // fire immediately on first press
+  shootCat();
+}
+function stopCannonFire() {
+  cannonHeld = false;
+  cannonFireTimer = 0;
+}
+function updateCannonFire(dt) {
+  if(!cannonHeld || !state.cannonMode) return;
+  cannonFireTimer += dt;
+  if(cannonFireTimer >= CANNON_FIRE_INTERVAL) {
+    cannonFireTimer -= CANNON_FIRE_INTERVAL;
+    shootCat();
+  }
+}
 
 // ---- Trajectory Arc Indicator ----
 const ARC_POINTS = 40;
@@ -149,9 +205,12 @@ function toggleCannonMode() {
     updateVacuumDisplay();
   }
   state.cannonMode = !state.cannonMode;
+  cannonHeld = false;
+  cannonFireTimer = 0;
   netGroup.visible = !state.cannonMode;
+  cannonGroup.visible = state.cannonMode;
   updateCannonDisplay();
-  if(state.cannonMode) showCenterMsg("Cannon mode! Click to shoot cats");
+  if(state.cannonMode) showCenterMsg("Cannon mode! Hold to rapid fire cats");
   else { arcLine.visible = false; landingMarker.visible = false; hideCenterMsg(); }
 }
 
@@ -287,6 +346,9 @@ function toggleVacuumMode() {
   // If cannon mode is on, turn it off first
   if(state.cannonMode) {
     state.cannonMode = false;
+    cannonHeld = false;
+    cannonFireTimer = 0;
+    cannonGroup.visible = false;
     arcLine.visible = false;
     landingMarker.visible = false;
     updateCannonDisplay();
