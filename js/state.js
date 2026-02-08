@@ -11,6 +11,8 @@ const state = {
   expanding: false,
   cannonMode: false,
   vacuumMode: false,
+  captureCombo: 0,
+  captureComboTimer: 0,
 };
 
 function getCurrentMaxRadius() { return ringOuterR(state.activeDayRing); }

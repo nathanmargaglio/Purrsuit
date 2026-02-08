@@ -112,6 +112,7 @@ function gameLoop(time){
     updateVacuum(dt);
     updateProjectileCats(dt);
     updateToyMice(dt);
+    updateCaptureCombo(dt);
     if(!state.expanding) updateRingDisplay();
     if(crateMesh){const r=crateMesh.children[crateMesh.children.length-1];r.material.opacity=0.2+Math.sin(time*0.003)*0.1;}
   }

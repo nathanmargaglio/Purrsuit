@@ -43,10 +43,10 @@ function synthCat(pos,sz) {
   try { const ctx=getAudioCtx(),d=camera.position.distanceTo(pos); if(d>12) return; const v=0.08*(1-d/12),bp=(1.5-(sz||1)*0.5)*400,t=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain(); o.connect(g);g.connect(ctx.destination);
   const tp=Math.random(); if(tp<0.5){o.frequency.setValueAtTime(bp*1.2,t);o.frequency.exponentialRampToValueAtTime(bp*0.8,t+0.15);o.frequency.exponentialRampToValueAtTime(bp*1.4,t+0.2);o.frequency.exponentialRampToValueAtTime(bp*0.5,t+0.4);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.45);o.start(t);o.stop(t+0.45);} else if(tp<0.8){o.frequency.setValueAtTime(bp*1.5,t);o.frequency.exponentialRampToValueAtTime(bp*0.9,t+0.15);g.gain.setValueAtTime(v*0.7,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.2);o.start(t);o.stop(t+0.2);} else{o.type='sawtooth';o.frequency.setValueAtTime(bp*0.15,t);g.gain.setValueAtTime(v*0.3,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.6);o.start(t);o.stop(t+0.6);}
   } catch(e){} }
-function synthCollect() { try { const ctx=getAudioCtx(),t=ctx.currentTime; [523,659,784,1047].forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.setValueAtTime(f,t+i*0.07);g.gain.setValueAtTime(0.1,t+i*0.07);g.gain.exponentialRampToValueAtTime(0.001,t+i*0.07+0.2);o.start(t+i*0.07);o.stop(t+i*0.07+0.2);}); } catch(e){} }
+function synthCollect(pitch) { try { const ctx=getAudioCtx(),t=ctx.currentTime,p=pitch||1; [523,659,784,1047].forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.setValueAtTime(f*p,t+i*0.07);g.gain.setValueAtTime(0.1,t+i*0.07);g.gain.exponentialRampToValueAtTime(0.001,t+i*0.07+0.2);o.start(t+i*0.07);o.stop(t+i*0.07+0.2);}); } catch(e){} }
 
 function playCatSound(pos,sz) { const cats=['meow','screech','purring']; if(!playPositionalAsset(cats[Math.floor(Math.random()*3)],pos,0.4,15)) synthCat(pos,sz); }
-function playCatchSound() { if(!playAsset('collect',0.5)) synthCollect(); }
+function playCatchSound(pitch) { const p=pitch||1; if(!playAsset('collect',0.5,p)) synthCollect(p); }
 function playDepositSound() { if(!playAsset('collect',0.6)) synthCollect(); }
 function playWooshSound() { playAsset('woosh',0.4); }
 function playTumblingSound() { playAsset('tumbling',0.6); }
