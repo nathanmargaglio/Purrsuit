@@ -94,6 +94,14 @@ function renderUpgradeCards(){
     if(can) card.querySelector('.upgrade-btn').addEventListener('click',()=>{state.currency-=cost;state.upgrades.vacuumStrength++;document.getElementById('currency-display').textContent=state.currency;playUpgradeSound();saveGame();renderUpgradeCards();});
     c.appendChild(card);
   }
+  // Cat Rate upgrade (only if vacuum is unlocked)
+  if(state.upgrades.catVacuum){
+    const cost=getUpgradeCost('catRate'),can=state.currency>=cost;
+    const card=document.createElement('div');card.className='upgrade-card'+(can?'':' disabled');
+    card.innerHTML=`<div class="upgrade-info"><div class="upgrade-name">🌀 Cat Rate <span class="upgrade-level">Lv ${state.upgrades.catRate}</span></div><div class="upgrade-desc">Vacuum captures: x${getCatRate()} → x${getCatRate()+1} cats per tick</div></div><button class="upgrade-btn ${can?'':'cant-afford'}">${cost} 🐱</button>`;
+    if(can) card.querySelector('.upgrade-btn').addEventListener('click',()=>{state.currency-=cost;state.upgrades.catRate++;document.getElementById('currency-display').textContent=state.currency;playUpgradeSound();saveGame();renderUpgradeCards();});
+    c.appendChild(card);
+  }
   // Toy Mouse consumable
   {
     const cost=TOY_MOUSE_COST,can=state.currency>=cost;

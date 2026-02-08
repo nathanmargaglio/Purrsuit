@@ -405,17 +405,21 @@ function vacuumCapture() {
   const pP = new THREE.Vector3(camera.position.x,0,camera.position.z);
   const range = getVacuumRange();
   const angle = getVacuumAngle();
-  let closest = null, cD = Infinity;
+  const rate = getCatRate();
+  // Collect cats in range, sorted by distance
+  const inRange = [];
   for(const cat of cats){
     if(cat.caught) continue;
     const tC = new THREE.Vector3(cat.mesh.position.x,0,cat.mesh.position.z).sub(pP);
     const d = tC.length();
     if(d > range) continue;
     if(d > 0.01){ tC.normalize(); if(Math.acos(Math.min(fw.dot(tC),1)) > angle) continue; }
-    if(d < cD){ cD=d; closest=cat; }
+    inRange.push({ cat, dist: d });
   }
-  if(closest) {
-    catchCat(closest);
+  inRange.sort((a, b) => a.dist - b.dist);
+  const toCapture = Math.min(rate, inRange.length, getMaxBag() - state.catsInBag);
+  for(let i = 0; i < toCapture; i++) {
+    catchCat(inRange[i].cat);
   }
 }
 
