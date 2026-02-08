@@ -94,6 +94,12 @@ canvas { display: block; touch-action: none; }
 .btn-vacuum { bottom: 345px; right: 22px; width: 64px; height: 64px; background: rgba(80,100,220,0.55); border: 3px solid rgba(80,100,220,0.7); font-size: 1.5rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
 .btn-vacuum.visible { opacity: 1; pointer-events: auto; }
 .btn-vacuum:active { background: rgba(80,100,220,0.85); }
+.btn-mouse { bottom: 260px; left: 22px; width: 64px; height: 64px; background: rgba(180,140,80,0.55); border: 3px solid rgba(180,140,80,0.7); font-size: 1.5rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+.btn-mouse.visible { opacity: 1; pointer-events: auto; }
+.btn-mouse:active { background: rgba(180,140,80,0.85); }
+
+/* ===================== HUD INVENTORY INDICATOR ===================== */
+.hud-inventory { background: rgba(0,0,0,0.5); border-radius: 12px; padding: 8px 16px; color: #E8C9A0; font-size: 1rem; font-family: 'Fredoka', sans-serif; border: 2px solid rgba(180,140,80,0.4); }
 
 /* ===================== CANNON HUD INDICATOR ===================== */
 .cannon-toggle { background: rgba(220,80,80,0.4); border-radius: 12px; padding: 8px 16px; color: rgba(255,255,255,0.4); font-size: 0.9rem; font-family: 'Fredoka', sans-serif; border: 2px solid rgba(220,80,80,0.3); display: none; pointer-events: auto; cursor: pointer; transition: all 0.2s; }

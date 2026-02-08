@@ -10,6 +10,7 @@ function startDay(){
 
   clearCats();
   clearProjectileCats();
+  clearToyMice();
   buildRoomUpToRing(state.activeDayRing);
   spawnCatsForRing(state.activeDayRing);
 
@@ -24,6 +25,7 @@ function startDay(){
   netGroup.visible=true;
   vacuumGroup.visible=false;
   vacuumActive=false;
+  updateInventoryDisplay();
   showDayIntro();hideCenterMsg();hideUpgradeScreen();
   if(!isMobile) requestPointerLock();
   startBgMusic();
@@ -35,6 +37,7 @@ function endDay(){
   vacuumActive=false;
   clearProjectileCats();
   clearVacuumParticles();
+  clearToyMice();
   document.getElementById('hud').classList.remove('active');
   document.getElementById('mobile-controls').classList.remove('active');
   if(!isMobile) document.exitPointerLock();
@@ -107,6 +110,7 @@ function gameLoop(time){
     updateNet(dt);
     updateVacuum(dt);
     updateProjectileCats(dt);
+    updateToyMice(dt);
     if(!state.expanding) updateRingDisplay();
     if(crateMesh){const r=crateMesh.children[crateMesh.children.length-1];r.material.opacity=0.2+Math.sin(time*0.003)*0.1;}
   }

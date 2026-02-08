@@ -7,6 +7,7 @@ document.addEventListener('mousedown',e=>{if(e.button===0&&pointerLocked&&state.
 document.addEventListener('mouseup',e=>{if(e.button===0&&state.vacuumMode) stopVacuum();});
 document.addEventListener('keydown',e=>{if(e.code==='KeyQ'&&!e.repeat&&state.phase==='PLAYING'&&state.upgrades.catCannon) toggleCannonMode();});
 document.addEventListener('keydown',e=>{if(e.code==='KeyV'&&!e.repeat&&state.phase==='PLAYING'&&state.upgrades.catVacuum) toggleVacuumMode();});
+document.addEventListener('keydown',e=>{if(e.code==='KeyT'&&!e.repeat&&state.phase==='PLAYING') throwToyMouse();});
 document.addEventListener('pointerlockchange',()=>{pointerLocked=document.pointerLockElement===renderer.domElement;if(!pointerLocked&&state.phase==='PLAYING'&&!isMobile){state.paused=true;document.getElementById('blocker').classList.remove('hidden');document.getElementById('blocker-prompt').textContent='Click to Resume';document.getElementById('blocker-subtitle').textContent='Game paused';}});
 function requestPointerLock(){if(!isMobile) renderer.domElement.requestPointerLock();}
 
@@ -38,6 +39,8 @@ function setupMobileControls(){
   const btnVacuum=document.getElementById('btn-vacuum');
   if(btnVacuum) btnVacuum.addEventListener('touchstart',e=>{e.preventDefault();toggleVacuumMode();},{passive:false});
   btnDeposit.addEventListener('touchstart',e=>{e.preventDefault();if(isNearCrate())depositCats();},{passive:false});
+  const btnMouse=document.getElementById('btn-mouse');
+  if(btnMouse) btnMouse.addEventListener('touchstart',e=>{e.preventDefault();throwToyMouse();},{passive:false});
   hudPause.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();state.paused=true;document.getElementById('blocker').classList.remove('hidden');document.getElementById('blocker-prompt').textContent='Tap to Resume';document.getElementById('blocker-subtitle').textContent='Game paused';if(isMobile)document.getElementById('settings-panel').classList.add('visible');},{passive:false});
   const sS=document.getElementById('setting-sensitivity'),sV=document.getElementById('sensitivity-value'),dS=document.getElementById('setting-deadzone'),dV=document.getElementById('deadzone-value');
   sS.addEventListener('input',()=>{state.settings.lookSensitivity=parseFloat(sS.value);sV.textContent=sS.value;});
@@ -75,10 +78,12 @@ function updatePlayer(dt) {
     if(bc) bc.classList.toggle('visible',!!state.upgrades.catCannon);
     const bv=document.getElementById('btn-vacuum');
     if(bv) bv.classList.toggle('visible',!!state.upgrades.catVacuum);
+    const bm=document.getElementById('btn-mouse');
+    if(bm) bm.classList.toggle('visible',state.inventory.toyMouse>0);
   }
   const nc=isNearCrate();
   if(state.cannonMode){if(state.catsInBag>0) showCenterMsg("Cannon mode! Click to shoot · Q to switch"); else showCenterMsg("No cats to shoot! Q to switch back");}
   else if(state.vacuumMode){if(state.catsInBag>=getMaxBag()) showCenterMsg("Bag full! Return to crate · V to switch"); else showCenterMsg("Vacuum mode! Hold click to suck · V to switch");}
-  else if(!isMobile){const extras=[];if(state.upgrades.catCannon) extras.push("Q for cannon");if(state.upgrades.catVacuum) extras.push("V for vacuum");const suffix=extras.length?" · "+extras.join(" · "):"";if(nc&&state.catsInBag>0) showCenterMsg("Press E to deposit"+suffix); else if(state.catsInBag>=getMaxBag()) showCenterMsg("Bag full! Return to crate"+(state.upgrades.catCannon?" or use cannon (Q)":"")); else hideCenterMsg();}
+  else if(!isMobile){const extras=[];if(state.upgrades.catCannon) extras.push("Q for cannon");if(state.upgrades.catVacuum) extras.push("V for vacuum");if(state.inventory.toyMouse>0) extras.push("T for toy mouse");const suffix=extras.length?" · "+extras.join(" · "):"";if(nc&&state.catsInBag>0) showCenterMsg("Press E to deposit"+suffix); else if(state.catsInBag>=getMaxBag()) showCenterMsg("Bag full! Return to crate"+(state.upgrades.catCannon?" or use cannon (Q)":"")); else hideCenterMsg();}
   else{if(state.catsInBag>=getMaxBag()&&!nc) showCenterMsg("Bag full! Return to crate"); else hideCenterMsg();}
 }

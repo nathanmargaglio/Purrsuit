@@ -183,6 +183,51 @@ function updateCat(cat, dt, playerPos) {
   if (cat.caught) return;
   const roomR = getCurrentMaxRadius() - 0.8;
 
+  // Check for nearby active toy mice
+  const mousePositions = getActiveToyMousePositions();
+  let nearestMouse = null, nearestMouseDist = Infinity;
+  const cPos = new THREE.Vector3(cat.mesh.position.x, 0, cat.mesh.position.z);
+  for (const mp of mousePositions) {
+    const d = cPos.distanceTo(mp);
+    if (d < TOY_MOUSE_ATTRACT_RADIUS && d < nearestMouseDist) {
+      nearestMouseDist = d;
+      nearestMouse = mp;
+    }
+  }
+
+  // If attracted to a toy mouse, override normal behavior
+  if (nearestMouse) {
+    cat.isIdle = false;
+    const attractDir = nearestMouse.clone().sub(cPos);
+    if (attractDir.length() > 0.3) {
+      attractDir.normalize();
+      cat.velocity.lerp(attractDir.multiplyScalar(cat.speed * 1.5), Math.min(cat.turnSpeed * dt * 2, 1));
+    } else {
+      // Near the mouse — slow down and circle
+      cat.velocity.multiplyScalar(0.85);
+      cat.wanderAngle += dt * 4;
+      const circleDir = new THREE.Vector3(Math.cos(cat.wanderAngle), 0, Math.sin(cat.wanderAngle));
+      cat.velocity.lerp(circleDir.multiplyScalar(cat.speed * 0.4), Math.min(cat.turnSpeed * dt, 1));
+    }
+    cat.mesh.position.x += cat.velocity.x * dt;
+    cat.mesh.position.z += cat.velocity.z * dt;
+    clampToRoom(cat.mesh.position, roomR);
+
+    if (cat.velocity.length() > 0.05) { const ta=Math.atan2(cat.velocity.x,cat.velocity.z); let d=ta-cat.mesh.rotation.y; while(d>Math.PI) d-=Math.PI*2; while(d<-Math.PI) d+=Math.PI*2; cat.mesh.rotation.y+=d*Math.min(cat.turnSpeed*dt*2,1); }
+    const spd = cat.velocity.length();
+    cat.bobPhase += dt * cat.speed * 8;
+    if (spd > 0.2) {
+      cat.mesh.position.y = Math.abs(Math.sin(cat.bobPhase)) * 0.04 * cat.size;
+      cat.mesh.rotation.z = Math.sin(cat.bobPhase * 0.5) * 0.08;
+    } else {
+      cat.mesh.position.y = 0;
+      cat.mesh.rotation.z *= 0.9;
+    }
+    updateCatAnimations(cat, dt);
+    cat.soundTimer-=dt; if(cat.soundTimer<=0){playCatSound(cat.mesh.position,cat.size);cat.soundTimer=randomRange(2,6);}
+    return;
+  }
+
   if (cat.isIdle) {
     cat.idleTimer -= dt; if (cat.idleTimer<=0) cat.isIdle=false;
     const d=new THREE.Vector3(cat.mesh.position.x,0,cat.mesh.position.z).distanceTo(playerPos);
