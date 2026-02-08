@@ -13,7 +13,6 @@ function requestPointerLock(){if(!isMobile) renderer.domElement.requestPointerLo
 
 // ===================== MOBILE CONTROLS =====================
 const mobileInput={moveX:0,moveY:0,lookX:0,lookY:0};
-let aimButtonHeld=false;
 // Double-tap tracking for left joystick tool activation
 let lastTapEnd=0;       // timestamp of last short-tap touchend
 let lastTapStart=0;     // timestamp of last touchstart (to measure tap duration)
@@ -37,17 +36,19 @@ function setupMobileControls(){
     const end=e=>{for(const t of e.changedTouches){if(t.identifier!==tId)continue;tId=null;base.style.cssText='';knob.style.cssText='';onE();}};
     zone.addEventListener('touchend',end);zone.addEventListener('touchcancel',end);
   }
-  // GoldenEye mode: single stick feeds move OR look depending on aim button
-  function geOnMove(x,y){
-    if(aimButtonHeld){mobileInput.moveX=0;mobileInput.moveY=0;mobileInput.lookX=x;mobileInput.lookY=y;}
-    else{mobileInput.moveX=x;mobileInput.moveY=y;mobileInput.lookX=0;mobileInput.lookY=0;}
+  // Single Analog mode: left/right rotates player, up/down moves forward/backward
+  function saOnMove(x,y){
+    mobileInput.lookX=x; // left/right -> rotation
+    mobileInput.moveY=y; // up/down -> forward/backward
+    mobileInput.moveX=0; // no strafing in single analog
+    mobileInput.lookY=0; // no pitch changes
   }
-  function geOnEnd(){mobileInput.moveX=0;mobileInput.moveY=0;mobileInput.lookX=0;mobileInput.lookY=0;}
+  function saOnEnd(){mobileInput.moveX=0;mobileInput.moveY=0;mobileInput.lookX=0;mobileInput.lookY=0;}
   makeDJ('joystick-zone','joystick-base-left','joystick-knob',(x,y)=>{
-    if(state.settings.controllerMode==='goldenEye') geOnMove(x,y);
+    if(state.settings.controllerMode==='singleAnalog') saOnMove(x,y);
     else{mobileInput.moveX=x;mobileInput.moveY=y;}
   },()=>{
-    if(state.settings.controllerMode==='goldenEye') geOnEnd();
+    if(state.settings.controllerMode==='singleAnalog') saOnEnd();
     else{mobileInput.moveX=0;mobileInput.moveY=0;}
     // Only record as a valid tap-end if touch was short (not a drag/hold)
     const now=Date.now();
@@ -74,13 +75,6 @@ function setupMobileControls(){
     }
   });
   makeDJ('joystick-zone-right','joystick-base-right','joystick-knob-right',(x,y)=>{mobileInput.lookX=x;mobileInput.lookY=y;},()=>{mobileInput.lookX=0;mobileInput.lookY=0;});
-  // Aim button for GoldenEye mode
-  const btnAim=document.getElementById('btn-aim');
-  if(btnAim){
-    btnAim.addEventListener('touchstart',e=>{e.preventDefault();aimButtonHeld=true;btnAim.classList.add('held');},{passive:false});
-    btnAim.addEventListener('touchend',e=>{aimButtonHeld=false;btnAim.classList.remove('held');mobileInput.lookX=0;mobileInput.lookY=0;});
-    btnAim.addEventListener('touchcancel',e=>{aimButtonHeld=false;btnAim.classList.remove('held');mobileInput.lookX=0;mobileInput.lookY=0;});
-  }
   // Hide the swing button on mobile — tool activation is now via double-tap on joystick
   if(btnSwing) btnSwing.style.display='none';
   const btnCannon=document.getElementById('btn-cannon');
@@ -103,25 +97,47 @@ function setupMobileControls(){
       state.settings.controllerMode=btn.dataset.mode;applyControllerMode();saveGame();});
     btn.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();btn.click();},{passive:false});
   });
+  // Stick position toggle
+  const spBtns=document.querySelectorAll('.stick-position-option');
+  spBtns.forEach(btn=>{
+    btn.addEventListener('click',e=>{e.stopPropagation();
+      spBtns.forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+      state.settings.stickPosition=btn.dataset.position;applyControllerMode();saveGame();});
+    btn.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();btn.click();},{passive:false});
+  });
   document.getElementById('settings-panel').addEventListener('click',e=>e.stopPropagation());
   document.getElementById('settings-panel').addEventListener('touchend',e=>e.stopPropagation());
 }
 
 function applyControllerMode(){
-  const isGE=state.settings.controllerMode==='goldenEye';
+  const isSA=state.settings.controllerMode==='singleAnalog';
   const rightZone=document.getElementById('joystick-zone-right');
-  const btnAim=document.getElementById('btn-aim');
   const leftZone=document.getElementById('joystick-zone');
-  if(rightZone) rightZone.style.display=isGE?'none':'';
-  if(btnAim) btnAim.classList.toggle('visible',isGE);
-  if(leftZone) leftZone.style.width=isGE?'100%':'';
+  const stickPosRow=document.getElementById('stick-position-row');
+  // Single Analog: hide right stick, single stick takes full width
+  // Dual Analog: show both sticks at 45% width each
+  if(rightZone) rightZone.style.display=isSA?'none':'';
+  if(isSA){
+    // Position the single stick based on stickPosition setting
+    const pos=state.settings.stickPosition;
+    if(leftZone){
+      if(pos==='middle'){leftZone.style.width='100%';leftZone.style.left='0';leftZone.style.right='auto';}
+      else if(pos==='left'){leftZone.style.width='50%';leftZone.style.left='0';leftZone.style.right='auto';}
+      else if(pos==='right'){leftZone.style.width='50%';leftZone.style.left='auto';leftZone.style.right='0';}
+    }
+  } else {
+    if(leftZone){leftZone.style.width='';leftZone.style.left='';leftZone.style.right='';}
+  }
+  // Show/hide stick position row based on mode
+  if(stickPosRow) stickPosRow.style.display=isSA?'flex':'none';
   // Reset inputs when switching modes
   mobileInput.moveX=0;mobileInput.moveY=0;mobileInput.lookX=0;mobileInput.lookY=0;
-  aimButtonHeld=false;
-  if(btnAim) btnAim.classList.remove('held');
   // Update toggle buttons in settings panel
   document.querySelectorAll('.controller-option').forEach(b=>{
     b.classList.toggle('active',b.dataset.mode===state.settings.controllerMode);
+  });
+  document.querySelectorAll('.stick-position-option').forEach(b=>{
+    b.classList.toggle('active',b.dataset.position===state.settings.stickPosition);
   });
 }
 
@@ -131,10 +147,15 @@ function updatePlayer(dt) {
   if(state.expanding) return;
   const speed=getMoveSpeed(),fw=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),rt=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw)),mv=new THREE.Vector3();
   if(isMobile){
+    // Single Analog: lookX is rotation (from stick left/right), moveY is forward/backward (from stick up/down)
+    // Dual Analog: moveX/moveY is translation, lookX/lookY is camera
     if(Math.abs(mobileInput.moveX)>0.01||Math.abs(mobileInput.moveY)>0.01){mv.add(fw.clone().multiplyScalar(-mobileInput.moveY));mv.add(rt.clone().multiplyScalar(mobileInput.moveX));}
     const ls=state.settings.lookSensitivity;
     if(Math.abs(mobileInput.lookX)>0.01) yaw-=mobileInput.lookX*ls*dt;
-    if(Math.abs(mobileInput.lookY)>0.01){pitch-=mobileInput.lookY*ls*dt;pitch=Math.max(-Math.PI/2.2,Math.min(Math.PI/2.2,pitch));}
+    if(state.settings.controllerMode==='dualAnalog'){
+      // Only allow pitch changes in dual analog mode
+      if(Math.abs(mobileInput.lookY)>0.01){pitch-=mobileInput.lookY*ls*dt;pitch=Math.max(-Math.PI/2.2,Math.min(Math.PI/2.2,pitch));}
+    }
   } else {
     if(keys['KeyW']||keys['ArrowUp']) mv.add(fw); if(keys['KeyS']||keys['ArrowDown']) mv.sub(fw);
     if(keys['KeyA']||keys['ArrowLeft']) mv.sub(rt); if(keys['KeyD']||keys['ArrowRight']) mv.add(rt);

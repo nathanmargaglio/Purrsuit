@@ -5,7 +5,7 @@ const state = {
   upgrades: { netSize: 0, walkSpeed: 0, bagSize: 0, dayTime: 0, catCannon: 0, catVacuum: 0, crateSize: 0, vacuumStrength: 0, catRate: 0 },
   inventory: { toyMouse: 0 },
   paused: false,
-  settings: { lookSensitivity: 2.5, deadZone: 0.15, controllerMode: 'dualAnalog' },
+  settings: { lookSensitivity: 2.5, deadZone: 0.15, controllerMode: 'singleAnalog', stickPosition: 'middle' },
   progressRing: 0,
   activeDayRing: 0,
   expanding: false,
@@ -70,7 +70,11 @@ function loadGame() {
     if (data.settings) {
       state.settings.lookSensitivity = data.settings.lookSensitivity ?? 2.5;
       state.settings.deadZone = data.settings.deadZone ?? 0.15;
-      state.settings.controllerMode = data.settings.controllerMode ?? 'dualAnalog';
+      // Migrate old controllerMode values
+      let cm = data.settings.controllerMode ?? 'singleAnalog';
+      if(cm === 'goldenEye') cm = 'singleAnalog';
+      state.settings.controllerMode = cm;
+      state.settings.stickPosition = data.settings.stickPosition ?? 'middle';
     }
     return true;
   } catch(e) { return false; }
