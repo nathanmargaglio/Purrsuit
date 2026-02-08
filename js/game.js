@@ -113,7 +113,7 @@ function gameLoop(time){
     updateProjectileCats(dt);
     updateToyMice(dt);
     if(!state.expanding) updateRingDisplay();
-    if(crateMesh){const r=crateMesh.children[crateMesh.children.length-1];r.material.opacity=0.2+Math.sin(time*0.003)*0.1;}
+    if(crateRingMesh){crateRingMesh.material.opacity=0.2+Math.sin(time*0.003)*0.1;}
   }
   renderer.render(scene,camera);
 }

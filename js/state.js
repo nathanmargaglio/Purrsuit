@@ -2,7 +2,7 @@
 const state = {
   phase: 'MENU', day: 1, timeLeft: DAY_DURATION,
   dayScore: 0, totalScore: 0, currency: 0, catsInBag: 0,
-  upgrades: { netSize: 0, walkSpeed: 0, bagSize: 0, catCannon: 0, catVacuum: 0 },
+  upgrades: { netSize: 0, walkSpeed: 0, bagSize: 0, catCannon: 0, catVacuum: 0, crateSize: 0 },
   inventory: { toyMouse: 0 },
   paused: false,
   settings: { lookSensitivity: 2.5, deadZone: 0.15, controllerMode: 'dualAnalog' },
@@ -18,7 +18,8 @@ function getNetRange() { return 3.5 + state.upgrades.netSize * 1.0; }
 function getNetAngle() { return 0.45 + state.upgrades.netSize * 0.1; }
 function getMoveSpeed() { return 4.0 + state.upgrades.walkSpeed * 1.0; }
 function getMaxBag() { return 1 + state.upgrades.bagSize; }
-function getUpgradeCost(type) { if (type === 'catCannon' || type === 'catVacuum') return 16; const l = state.upgrades[type]; return (l + 1) * 2 + Math.floor(l * 0.5); }
+function getUpgradeCost(type) { if (type === 'catCannon' || type === 'catVacuum') return 16; if (type === 'crateSize') return 10 * Math.pow(10, state.upgrades.crateSize); const l = state.upgrades[type]; return (l + 1) * 2 + Math.floor(l * 0.5); }
+function getCrateRadius() { return 2.0 * (1 + state.upgrades.crateSize * 0.5); }
 function getCatCountForRing(ring) { return Math.min(8 * Math.pow(2, ring), 128); }
 function getCatDifficulty(ring) { return 1 + ring * 0.35; }
 
@@ -52,6 +53,7 @@ function loadGame() {
       state.upgrades.bagSize = data.upgrades.bagSize || 0;
       state.upgrades.catCannon = data.upgrades.catCannon || 0;
       state.upgrades.catVacuum = data.upgrades.catVacuum || 0;
+      state.upgrades.crateSize = data.upgrades.crateSize || 0;
     }
     state.progressRing = data.progressRing || 0;
     if (data.settings) {

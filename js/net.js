@@ -24,7 +24,7 @@ function checkCapture() {
   if(closest) catchCat(closest);
 }
 function catchCat(cat){cat.caught=true;scene.remove(cat.mesh);state.catsInBag++;showCatchFlash();playCatchSound();updateBagDisplay();}
-function isNearCrate(){const dx=camera.position.x,dz=camera.position.z;return Math.sqrt(dx*dx+dz*dz)<2.0;}
+function isNearCrate(){const dx=camera.position.x,dz=camera.position.z;return Math.sqrt(dx*dx+dz*dz)<getCrateRadius();}
 
 function depositCats() {
   if(state.catsInBag===0) return;
@@ -41,7 +41,7 @@ function depositCats() {
 const projectileCats = [];
 const CANNON_SPEED = 18;
 const CANNON_GRAVITY = 12;
-const CRATE_HIT_RADIUS = 1.8;
+const BASE_CRATE_HIT_RADIUS = 1.8;
 
 function toggleCannonMode() {
   if(!state.upgrades.catCannon || state.phase!=='PLAYING' || state.expanding) return;
@@ -91,7 +91,7 @@ function updateProjectileCats(dt) {
     // Check crate collision (crate is at origin)
     const dx = p.mesh.position.x, dz = p.mesh.position.z;
     const distToCrate = Math.sqrt(dx*dx + dz*dz);
-    if(distToCrate < CRATE_HIT_RADIUS && p.mesh.position.y < 1.5 && p.mesh.position.y > -0.5) {
+    if(distToCrate < BASE_CRATE_HIT_RADIUS * (1 + state.upgrades.crateSize * 0.5) && p.mesh.position.y < 1.5 && p.mesh.position.y > -0.5) {
       scene.remove(p.mesh);
       projectileCats.splice(i, 1);
       state.dayScore++; state.totalScore++; state.currency++;

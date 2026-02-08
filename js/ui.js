@@ -22,13 +22,14 @@ function renderUpgradeCards(){
     {key:'netSize',name:'🥅 Net Size',desc:()=>`Range: ${getNetRange().toFixed(1)} → ${(getNetRange()+1).toFixed(1)}`},
     {key:'walkSpeed',name:'👟 Walk Speed',desc:()=>`Speed: ${getMoveSpeed().toFixed(1)} → ${(getMoveSpeed()+1).toFixed(1)}`},
     {key:'bagSize',name:'🎒 Bag Size',desc:()=>`Capacity: ${getMaxBag()} → ${getMaxBag()+1}`},
+    {key:'crateSize',name:'📦 Crate Size',desc:()=>`Deposit radius: ${getCrateRadius().toFixed(1)} → ${(getCrateRadius()+1.0).toFixed(1)}`},
   ];
   c.innerHTML='';
   for(const up of ups){
     const cost=getUpgradeCost(up.key),can=state.currency>=cost;
     const card=document.createElement('div');card.className='upgrade-card'+(can?'':' disabled');
     card.innerHTML=`<div class="upgrade-info"><div class="upgrade-name">${up.name} <span class="upgrade-level">Lv ${state.upgrades[up.key]}</span></div><div class="upgrade-desc">${up.desc()}</div></div><button class="upgrade-btn ${can?'':'cant-afford'}">${cost} 🐱</button>`;
-    if(can) card.querySelector('.upgrade-btn').addEventListener('click',()=>{state.currency-=cost;state.upgrades[up.key]++;document.getElementById('currency-display').textContent=state.currency;playUpgradeSound();saveGame();renderUpgradeCards();});
+    if(can) card.querySelector('.upgrade-btn').addEventListener('click',()=>{state.currency-=cost;state.upgrades[up.key]++;if(up.key==='crateSize') updateCrateRing();document.getElementById('currency-display').textContent=state.currency;playUpgradeSound();saveGame();renderUpgradeCards();});
     c.appendChild(card);
   }
   // Cat Cannon one-time unlock
