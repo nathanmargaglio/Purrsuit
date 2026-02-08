@@ -13,6 +13,7 @@ function requestPointerLock(){if(!isMobile) renderer.domElement.requestPointerLo
 
 // ===================== MOBILE CONTROLS =====================
 const mobileInput={moveX:0,moveY:0,lookX:0,lookY:0};
+let aimButtonHeld=false;
 function setupMobileControls(){
   const btnSwing=document.getElementById('btn-swing'),btnDeposit=document.getElementById('btn-deposit'),hudPause=document.getElementById('hud-pause');
   function makeDJ(zId,bId,kId,onM,onE){
@@ -29,8 +30,27 @@ function setupMobileControls(){
     const end=e=>{for(const t of e.changedTouches){if(t.identifier!==tId)continue;tId=null;base.style.cssText='';knob.style.cssText='';onE();}};
     zone.addEventListener('touchend',end);zone.addEventListener('touchcancel',end);
   }
-  makeDJ('joystick-zone','joystick-base-left','joystick-knob',(x,y)=>{mobileInput.moveX=x;mobileInput.moveY=y;},()=>{mobileInput.moveX=0;mobileInput.moveY=0;});
+  // GoldenEye mode: single stick feeds move OR look depending on aim button
+  function geOnMove(x,y){
+    if(aimButtonHeld){mobileInput.moveX=0;mobileInput.moveY=0;mobileInput.lookX=x;mobileInput.lookY=y;}
+    else{mobileInput.moveX=x;mobileInput.moveY=y;mobileInput.lookX=0;mobileInput.lookY=0;}
+  }
+  function geOnEnd(){mobileInput.moveX=0;mobileInput.moveY=0;mobileInput.lookX=0;mobileInput.lookY=0;}
+  makeDJ('joystick-zone','joystick-base-left','joystick-knob',(x,y)=>{
+    if(state.settings.controllerMode==='goldenEye') geOnMove(x,y);
+    else{mobileInput.moveX=x;mobileInput.moveY=y;}
+  },()=>{
+    if(state.settings.controllerMode==='goldenEye') geOnEnd();
+    else{mobileInput.moveX=0;mobileInput.moveY=0;}
+  });
   makeDJ('joystick-zone-right','joystick-base-right','joystick-knob-right',(x,y)=>{mobileInput.lookX=x;mobileInput.lookY=y;},()=>{mobileInput.lookX=0;mobileInput.lookY=0;});
+  // Aim button for GoldenEye mode
+  const btnAim=document.getElementById('btn-aim');
+  if(btnAim){
+    btnAim.addEventListener('touchstart',e=>{e.preventDefault();aimButtonHeld=true;btnAim.classList.add('held');},{passive:false});
+    btnAim.addEventListener('touchend',e=>{aimButtonHeld=false;btnAim.classList.remove('held');mobileInput.lookX=0;mobileInput.lookY=0;});
+    btnAim.addEventListener('touchcancel',e=>{aimButtonHeld=false;btnAim.classList.remove('held');mobileInput.lookX=0;mobileInput.lookY=0;});
+  }
   btnSwing.addEventListener('touchstart',e=>{e.preventDefault();if(state.cannonMode) shootCat(); else if(state.vacuumMode) startVacuum(); else startSwing();},{passive:false});
   btnSwing.addEventListener('touchend',e=>{if(state.vacuumMode) stopVacuum();});
   btnSwing.addEventListener('touchcancel',e=>{if(state.vacuumMode) stopVacuum();});
@@ -45,8 +65,34 @@ function setupMobileControls(){
   const sS=document.getElementById('setting-sensitivity'),sV=document.getElementById('sensitivity-value'),dS=document.getElementById('setting-deadzone'),dV=document.getElementById('deadzone-value');
   sS.addEventListener('input',()=>{state.settings.lookSensitivity=parseFloat(sS.value);sV.textContent=sS.value;});
   dS.addEventListener('input',()=>{state.settings.deadZone=parseFloat(dS.value);dV.textContent=Math.round(dS.value*100)+'%';});
+  // Controller mode toggle
+  const ctBtns=document.querySelectorAll('.controller-option');
+  ctBtns.forEach(btn=>{
+    btn.addEventListener('click',e=>{e.stopPropagation();
+      ctBtns.forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+      state.settings.controllerMode=btn.dataset.mode;applyControllerMode();saveGame();});
+    btn.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();btn.click();},{passive:false});
+  });
   document.getElementById('settings-panel').addEventListener('click',e=>e.stopPropagation());
   document.getElementById('settings-panel').addEventListener('touchend',e=>e.stopPropagation());
+}
+
+function applyControllerMode(){
+  const isGE=state.settings.controllerMode==='goldenEye';
+  const rightZone=document.getElementById('joystick-zone-right');
+  const btnAim=document.getElementById('btn-aim');
+  const leftZone=document.getElementById('joystick-zone');
+  if(rightZone) rightZone.style.display=isGE?'none':'';
+  if(btnAim) btnAim.classList.toggle('visible',isGE);
+  if(leftZone) leftZone.style.width=isGE?'100%':'';
+  // Reset inputs when switching modes
+  mobileInput.moveX=0;mobileInput.moveY=0;mobileInput.lookX=0;mobileInput.lookY=0;
+  aimButtonHeld=false;
+  if(btnAim) btnAim.classList.remove('held');
+  // Update toggle buttons in settings panel
+  document.querySelectorAll('.controller-option').forEach(b=>{
+    b.classList.toggle('active',b.dataset.mode===state.settings.controllerMode);
+  });
 }
 
 // ===================== PLAYER UPDATE =====================

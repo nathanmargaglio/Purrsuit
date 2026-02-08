@@ -74,6 +74,7 @@ if(hasSavedGame()){
     const dzEl=document.getElementById('setting-deadzone');
     if(sensEl){sensEl.value=state.settings.lookSensitivity;document.getElementById('sensitivity-value').textContent=state.settings.lookSensitivity;}
     if(dzEl){dzEl.value=state.settings.deadZone;document.getElementById('deadzone-value').textContent=Math.round(state.settings.deadZone*100)+'%';}
+    if(isMobile) applyControllerMode();
     continueBtn.classList.add('hidden');
     document.getElementById('blocker').classList.add('hidden');
     document.getElementById('settings-panel').classList.remove('visible');
@@ -88,7 +89,7 @@ buildRoomUpToRing(0);
 createCrate();
 createNet();
 createVacuum();
-if(isMobile) setupMobileControls();
+if(isMobile){setupMobileControls();applyControllerMode();}
 loadSoundManifest();
 loadCatModels();
 document.getElementById('cannon-toggle').addEventListener('click',()=>toggleCannonMode());
