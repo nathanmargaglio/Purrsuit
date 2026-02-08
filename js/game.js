@@ -1,7 +1,7 @@
 // ===================== GAME LOGIC =====================
 function startDay(){
   state.phase='PLAYING'; state.paused=false;
-  state.timeLeft=DAY_DURATION; state.dayScore=0; state.catsInBag=0;
+  state.timeLeft=getDayDuration(); state.dayScore=0; state.catsInBag=0;
   state.expanding=false; state.cannonMode=false; state.vacuumMode=false; expandAnim=null; camShakeIntensity=0;
 
   state.activeDayRing = state.progressRing;
@@ -112,6 +112,7 @@ function gameLoop(time){
     updateVacuum(dt);
     updateProjectileCats(dt);
     updateToyMice(dt);
+    updateCaptureCombo(dt);
     if(!state.expanding) updateRingDisplay();
     if(crateRingMesh){crateRingMesh.material.opacity=0.2+Math.sin(time*0.003)*0.1;}
   }

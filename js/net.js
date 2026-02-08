@@ -23,8 +23,20 @@ function checkCapture() {
   for(const cat of cats){if(cat.caught) continue;const tC=new THREE.Vector3(cat.mesh.position.x,0,cat.mesh.position.z).sub(pP);const d=tC.length();if(d>range) continue;if(d>0.01){tC.normalize();if(Math.acos(Math.min(fw.dot(tC),1))>angle) continue;}if(d<cD){cD=d;closest=cat;}}
   if(closest) catchCat(closest);
 }
-function catchCat(cat){cat.caught=true;scene.remove(cat.mesh);state.catsInBag++;showCatchFlash();playCatchSound();updateBagDisplay();}
-function isNearCrate(){const dx=camera.position.x,dz=camera.position.z;return Math.sqrt(dx*dx+dz*dz)<getCrateRadius();}
+function catchCat(cat){
+  cat.caught=true;scene.remove(cat.mesh);state.catsInBag++;
+  // Update capture combo
+  state.captureCombo++;
+  state.captureComboTimer=2.0; // 2 second window to keep combo alive
+  // Show combo popup
+  showComboPopup(state.captureCombo);
+  showCatchFlash();
+  // Escalating pitch: base 1.0, increases by 0.08 per combo, capped at 2.0
+  const comboPitch=Math.min(1.0+(state.captureCombo-1)*0.08,2.0);
+  playCatchSound(comboPitch);
+  updateBagDisplay();
+}
+function isNearCrate(){const dx=camera.position.x,dz=camera.position.z;return Math.sqrt(dx*dx+dz*dz)<2.0;}
 
 function depositCats() {
   if(state.catsInBag===0) return;
@@ -254,7 +266,6 @@ function vacuumCapture() {
   }
   if(closest) {
     catchCat(closest);
-    playAsset('collect', 0.3, 1.2 + Math.random()*0.3); // slightly pitched up for vacuum feel
   }
 }
 
