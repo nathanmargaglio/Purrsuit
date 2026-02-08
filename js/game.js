@@ -40,9 +40,10 @@ function endDay(){
   if(!isMobile) document.exitPointerLock();
   document.getElementById('blocker').classList.add('hidden');
   updateScoreDisplay();showUpgradeScreen();
+  saveGame();
 }
 
-document.getElementById('start-day-btn').addEventListener('click',()=>{state.day++;startDay();});
+document.getElementById('start-day-btn').addEventListener('click',()=>{state.day++;saveGame();startDay();});
 
 // ===================== BLOCKER =====================
 function handleBlockerActivation(){
@@ -56,6 +57,30 @@ renderer.domElement.addEventListener('touchstart',e=>e.preventDefault(),{passive
 renderer.domElement.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
 
 // ===================== INIT & LOOP =====================
+// Show continue button if saved game exists
+if(hasSavedGame()){
+  const continueBtn=document.getElementById('continue-btn');
+  continueBtn.classList.remove('hidden');
+  // Peek at saved day for display
+  try{const d=JSON.parse(localStorage.getItem(SAVE_KEY));document.getElementById('continue-day').textContent=d.day||1;}catch(e){}
+  continueBtn.addEventListener('click',e=>{
+    e.stopPropagation();
+    loadGame();
+    // Update settings sliders to match loaded state
+    const sensEl=document.getElementById('setting-sensitivity');
+    const dzEl=document.getElementById('setting-deadzone');
+    if(sensEl){sensEl.value=state.settings.lookSensitivity;document.getElementById('sensitivity-value').textContent=state.settings.lookSensitivity;}
+    if(dzEl){dzEl.value=state.settings.deadZone;document.getElementById('deadzone-value').textContent=Math.round(state.settings.deadZone*100)+'%';}
+    continueBtn.classList.add('hidden');
+    document.getElementById('blocker').classList.add('hidden');
+    document.getElementById('settings-panel').classList.remove('visible');
+    startDay();
+  });
+  continueBtn.addEventListener('touchend',e=>{
+    e.preventDefault();e.stopPropagation();
+    continueBtn.click();
+  });
+}
 buildRoomUpToRing(0);
 createCrate();
 createNet();

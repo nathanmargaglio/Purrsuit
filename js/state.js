@@ -20,3 +20,51 @@ function getMaxBag() { return 1 + state.upgrades.bagSize; }
 function getUpgradeCost(type) { if (type === 'catCannon' || type === 'catVacuum') return 16; const l = state.upgrades[type]; return (l + 1) * 2 + Math.floor(l * 0.5); }
 function getCatCountForRing(ring) { return Math.min(8 * Math.pow(2, ring), 128); }
 function getCatDifficulty(ring) { return 1 + ring * 0.35; }
+
+// ===================== SAVE / LOAD =====================
+const SAVE_KEY = 'purrsuit_save';
+
+function saveGame() {
+  const data = {
+    version: 1,
+    day: state.day,
+    totalScore: state.totalScore,
+    currency: state.currency,
+    upgrades: { ...state.upgrades },
+    progressRing: state.progressRing,
+    settings: { ...state.settings },
+  };
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    state.day = data.day || 1;
+    state.totalScore = data.totalScore || 0;
+    state.currency = data.currency || 0;
+    if (data.upgrades) {
+      state.upgrades.netSize = data.upgrades.netSize || 0;
+      state.upgrades.walkSpeed = data.upgrades.walkSpeed || 0;
+      state.upgrades.bagSize = data.upgrades.bagSize || 0;
+      state.upgrades.catCannon = data.upgrades.catCannon || 0;
+      state.upgrades.catVacuum = data.upgrades.catVacuum || 0;
+    }
+    state.progressRing = data.progressRing || 0;
+    if (data.settings) {
+      state.settings.lookSensitivity = data.settings.lookSensitivity ?? 2.5;
+      state.settings.deadZone = data.settings.deadZone ?? 0.15;
+    }
+    return true;
+  } catch(e) { return false; }
+}
+
+function hasSavedGame() {
+  try { return localStorage.getItem(SAVE_KEY) !== null; } catch(e) { return false; }
+}
+
+function deleteSave() {
+  try { localStorage.removeItem(SAVE_KEY); } catch(e) {}
+}

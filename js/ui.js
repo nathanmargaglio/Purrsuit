@@ -28,7 +28,7 @@ function renderUpgradeCards(){
     const cost=getUpgradeCost(up.key),can=state.currency>=cost;
     const card=document.createElement('div');card.className='upgrade-card'+(can?'':' disabled');
     card.innerHTML=`<div class="upgrade-info"><div class="upgrade-name">${up.name} <span class="upgrade-level">Lv ${state.upgrades[up.key]}</span></div><div class="upgrade-desc">${up.desc()}</div></div><button class="upgrade-btn ${can?'':'cant-afford'}">${cost} 🐱</button>`;
-    if(can) card.querySelector('.upgrade-btn').addEventListener('click',()=>{state.currency-=cost;state.upgrades[up.key]++;document.getElementById('currency-display').textContent=state.currency;playUpgradeSound();renderUpgradeCards();});
+    if(can) card.querySelector('.upgrade-btn').addEventListener('click',()=>{state.currency-=cost;state.upgrades[up.key]++;document.getElementById('currency-display').textContent=state.currency;playUpgradeSound();saveGame();renderUpgradeCards();});
     c.appendChild(card);
   }
   // Cat Cannon one-time unlock
@@ -36,7 +36,7 @@ function renderUpgradeCards(){
     const cost=getUpgradeCost('catCannon'),can=state.currency>=cost;
     const card=document.createElement('div');card.className='upgrade-card'+(can?'':' disabled');
     card.innerHTML=`<div class="upgrade-info"><div class="upgrade-name">🔫 Cat Cannon <span class="upgrade-level">Locked</span></div><div class="upgrade-desc">Shoot cats at the crate to deposit them from afar!</div></div><button class="upgrade-btn ${can?'':'cant-afford'}">${cost} 🐱</button>`;
-    if(can) card.querySelector('.upgrade-btn').addEventListener('click',()=>{state.currency-=cost;state.upgrades.catCannon=1;document.getElementById('currency-display').textContent=state.currency;playUpgradeSound();renderUpgradeCards();});
+    if(can) card.querySelector('.upgrade-btn').addEventListener('click',()=>{state.currency-=cost;state.upgrades.catCannon=1;document.getElementById('currency-display').textContent=state.currency;playUpgradeSound();saveGame();renderUpgradeCards();});
     c.appendChild(card);
   }
   // Cat Vacuum one-time unlock
@@ -44,7 +44,7 @@ function renderUpgradeCards(){
     const cost=getUpgradeCost('catVacuum'),can=state.currency>=cost;
     const card=document.createElement('div');card.className='upgrade-card'+(can?'':' disabled');
     card.innerHTML=`<div class="upgrade-info"><div class="upgrade-name">🌀 Cat Vacuum <span class="upgrade-level">Locked</span></div><div class="upgrade-desc">Hold to suck up cats with longer range! No swinging needed.</div></div><button class="upgrade-btn ${can?'':'cant-afford'}">${cost} 🐱</button>`;
-    if(can) card.querySelector('.upgrade-btn').addEventListener('click',()=>{state.currency-=cost;state.upgrades.catVacuum=1;document.getElementById('currency-display').textContent=state.currency;playUpgradeSound();renderUpgradeCards();});
+    if(can) card.querySelector('.upgrade-btn').addEventListener('click',()=>{state.currency-=cost;state.upgrades.catVacuum=1;document.getElementById('currency-display').textContent=state.currency;playUpgradeSound();saveGame();renderUpgradeCards();});
     c.appendChild(card);
   }
 }
