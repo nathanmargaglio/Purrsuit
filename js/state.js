@@ -56,6 +56,7 @@ function loadGame() {
       state.upgrades.dayTime = data.upgrades.dayTime || 0;
       state.upgrades.catCannon = data.upgrades.catCannon || 0;
       state.upgrades.catVacuum = data.upgrades.catVacuum || 0;
+      state.upgrades.crateSize = data.upgrades.crateSize || 0;
     }
     state.progressRing = data.progressRing || 0;
     if (data.settings) {

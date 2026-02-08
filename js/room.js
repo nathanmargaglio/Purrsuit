@@ -184,13 +184,26 @@ function updateExpansion(dt) {
 
 // ===================== CRATE =====================
 let crateMesh;
+let crateRingMesh;
 function createCrate() {
   const group = new THREE.Group();
   const box = new THREE.Mesh(new THREE.BoxGeometry(0.9,0.7,0.9), new THREE.MeshStandardMaterial({color:0x9B7340,roughness:0.8}));
   box.position.y = 0.35; box.castShadow = true; box.receiveShadow = true; group.add(box);
   const sm = new THREE.MeshBasicMaterial({color:0x7A5A2E});
   for (let i=-1;i<=1;i+=2) { const s=new THREE.Mesh(new THREE.BoxGeometry(0.92,0.04,0.03),sm); s.position.set(0,0.35+i*0.15,0.46); group.add(s); const s2=s.clone(); s2.position.z=-0.46; group.add(s2); }
-  const ring = new THREE.Mesh(new THREE.RingGeometry(1.2,1.4,32), new THREE.MeshBasicMaterial({color:0xF7C948,transparent:true,opacity:0.3,side:THREE.DoubleSide}));
+  const mult = 1 + state.upgrades.crateSize * 0.5;
+  const ring = new THREE.Mesh(new THREE.RingGeometry(1.2*mult,1.4*mult,32), new THREE.MeshBasicMaterial({color:0xF7C948,transparent:true,opacity:0.3,side:THREE.DoubleSide}));
   ring.rotation.x = -Math.PI/2; ring.position.y = 0.01; group.add(ring);
+  crateRingMesh = ring;
   scene.add(group); crateMesh = group;
+}
+function updateCrateRing() {
+  if (!crateRingMesh || !crateMesh) return;
+  const mult = 1 + state.upgrades.crateSize * 0.5;
+  crateMesh.remove(crateRingMesh);
+  crateRingMesh.geometry.dispose();
+  const ring = new THREE.Mesh(new THREE.RingGeometry(1.2*mult,1.4*mult,32), new THREE.MeshBasicMaterial({color:0xF7C948,transparent:true,opacity:0.3,side:THREE.DoubleSide}));
+  ring.rotation.x = -Math.PI/2; ring.position.y = 0.01;
+  crateMesh.add(ring);
+  crateRingMesh = ring;
 }
