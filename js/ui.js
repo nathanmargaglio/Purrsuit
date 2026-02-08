@@ -47,6 +47,14 @@ function renderUpgradeCards(){
     if(can) card.querySelector('.upgrade-btn').addEventListener('click',()=>{state.currency-=cost;state.upgrades.catVacuum=1;document.getElementById('currency-display').textContent=state.currency;playUpgradeSound();renderUpgradeCards();});
     c.appendChild(card);
   }
+  // Toy Mouse consumable
+  {
+    const cost=TOY_MOUSE_COST,can=state.currency>=cost;
+    const card=document.createElement('div');card.className='upgrade-card'+(can?'':' disabled');
+    card.innerHTML=`<div class="upgrade-info"><div class="upgrade-name">\uD83D\uDC2D Toy Mouse <span class="upgrade-level">x${state.inventory.toyMouse}</span></div><div class="upgrade-desc">Throw to lure cats for ${TOY_MOUSE_DURATION}s! Press T to throw.</div></div><button class="upgrade-btn ${can?'':'cant-afford'}">${cost} \uD83D\uDC31</button>`;
+    if(can) card.querySelector('.upgrade-btn').addEventListener('click',()=>{state.currency-=cost;state.inventory.toyMouse++;document.getElementById('currency-display').textContent=state.currency;playUpgradeSound();renderUpgradeCards();});
+    c.appendChild(card);
+  }
 }
 function updateCannonDisplay(){
   const el=document.getElementById('cannon-toggle');

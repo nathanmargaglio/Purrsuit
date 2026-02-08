@@ -20,6 +20,12 @@ const RING_THEMES = [
   { floor1:'#C0885C', floor2:'#B0784C', wall:0xD4BAA0, ceil:0xC4AA90, trim:0x8B6240, pattern:'stripe' },
 ];
 
+const TOY_MOUSE_COST = 2;
+const TOY_MOUSE_DURATION = 5;
+const TOY_MOUSE_ATTRACT_RADIUS = 12;
+const TOY_MOUSE_THROW_SPEED = 14;
+const TOY_MOUSE_GRAVITY = 10;
+
 function getTheme(ring) { return RING_THEMES[ring % RING_THEMES.length]; }
 function ringInnerR(ring) { return ring === 0 ? 0 : BASE_RING_RADIUS + (ring - 1) * RING_EXPAND; }
 function ringOuterR(ring) { return BASE_RING_RADIUS + ring * RING_EXPAND; }

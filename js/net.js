@@ -304,3 +304,123 @@ function updateVacuumDisplay() {
   const el = document.getElementById('vacuum-toggle');
   if(el) el.classList.toggle('active', state.vacuumMode);
 }
+
+// ===================== TOY MOUSE =====================
+const activeToyMice = [];
+
+function createToyMouseMesh() {
+  const g = new THREE.Group();
+  // Body (ellipsoid)
+  const bodyMat = new THREE.MeshStandardMaterial({color:0x888888, roughness:0.6});
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.12,8,6), bodyMat);
+  body.scale.set(1, 0.8, 1.5);
+  body.position.y = 0.1;
+  body.castShadow = true;
+  g.add(body);
+  // Ears
+  const earMat = new THREE.MeshStandardMaterial({color:0xBB8888, roughness:0.5});
+  [-1,1].forEach(s => {
+    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.04,6,4), earMat);
+    ear.position.set(s*0.06, 0.18, 0.1);
+    g.add(ear);
+  });
+  // Eyes
+  const eyeMat = new THREE.MeshBasicMaterial({color:0x111111});
+  [-1,1].forEach(s => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.02,4,4), eyeMat);
+    eye.position.set(s*0.04, 0.12, 0.18);
+    g.add(eye);
+  });
+  // Tail (curved cylinder)
+  const tailMat = new THREE.MeshStandardMaterial({color:0xFF6699, roughness:0.5});
+  const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.015,0.01,0.25,5), tailMat);
+  tail.position.set(0, 0.12, -0.2);
+  tail.rotation.x = 0.5;
+  g.add(tail);
+  return g;
+}
+
+function throwToyMouse() {
+  if(state.phase !== 'PLAYING' || state.expanding) return;
+  if(state.inventory.toyMouse <= 0) { showCenterMsg("No toy mice!"); return; }
+  state.inventory.toyMouse--;
+  updateInventoryDisplay();
+
+  const mesh = createToyMouseMesh();
+  mesh.position.copy(camera.position);
+  mesh.position.y -= 0.2;
+  scene.add(mesh);
+
+  const dir = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize();
+  const velocity = dir.multiplyScalar(TOY_MOUSE_THROW_SPEED);
+
+  activeToyMice.push({ mesh, velocity, age: 0, landed: false, timer: TOY_MOUSE_DURATION, bobPhase: 0 });
+  playWooshSound();
+}
+
+function updateToyMice(dt) {
+  for(let i = activeToyMice.length - 1; i >= 0; i--) {
+    const m = activeToyMice[i];
+    if(!m.landed) {
+      m.age += dt;
+      m.velocity.y -= TOY_MOUSE_GRAVITY * dt;
+      m.mesh.position.x += m.velocity.x * dt;
+      m.mesh.position.y += m.velocity.y * dt;
+      m.mesh.position.z += m.velocity.z * dt;
+      m.mesh.rotation.x += dt * 6;
+      // Land on floor
+      if(m.mesh.position.y <= 0) {
+        m.mesh.position.y = 0;
+        m.mesh.rotation.x = 0;
+        m.landed = true;
+        // Clamp to room
+        const roomR = getCurrentMaxRadius() - 0.8;
+        clampToRoom(m.mesh.position, roomR);
+      }
+      // Safety removal
+      if(m.age > 5 && !m.landed) {
+        scene.remove(m.mesh);
+        activeToyMice.splice(i, 1);
+        continue;
+      }
+    } else {
+      m.timer -= dt;
+      // Wobble animation while active
+      m.bobPhase += dt * 8;
+      m.mesh.rotation.z = Math.sin(m.bobPhase) * 0.2;
+      m.mesh.position.y = Math.abs(Math.sin(m.bobPhase * 0.5)) * 0.03;
+      // Blink effect when about to expire
+      if(m.timer < 1.5) {
+        m.mesh.visible = Math.sin(m.timer * 12) > 0;
+      }
+      if(m.timer <= 0) {
+        scene.remove(m.mesh);
+        activeToyMice.splice(i, 1);
+      }
+    }
+  }
+}
+
+function getActiveToyMousePositions() {
+  const positions = [];
+  for(const m of activeToyMice) {
+    if(m.landed && m.timer > 0) {
+      positions.push(new THREE.Vector3(m.mesh.position.x, 0, m.mesh.position.z));
+    }
+  }
+  return positions;
+}
+
+function clearToyMice() {
+  for(const m of activeToyMice) scene.remove(m.mesh);
+  activeToyMice.length = 0;
+}
+
+function updateInventoryDisplay() {
+  const el = document.getElementById('inventory-display');
+  if(el) {
+    const count = state.inventory.toyMouse;
+    el.textContent = count > 0 ? '\uD83D\uDC2D ' + count : '';
+    el.style.display = count > 0 ? 'block' : 'none';
+  }
+}

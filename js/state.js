@@ -3,6 +3,7 @@ const state = {
   phase: 'MENU', day: 1, timeLeft: DAY_DURATION,
   dayScore: 0, totalScore: 0, currency: 0, catsInBag: 0,
   upgrades: { netSize: 0, walkSpeed: 0, bagSize: 0, catCannon: 0, catVacuum: 0 },
+  inventory: { toyMouse: 0 },
   paused: false,
   settings: { lookSensitivity: 2.5, deadZone: 0.15 },
   progressRing: 0,
