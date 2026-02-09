@@ -43,6 +43,7 @@ function endDay(){
   arcLine.visible=false; landingMarker.visible=false;
   clearProjectileCats();
   clearVacuumParticles();
+  clearVacuumCaptureAnims();
   clearToyMice();
   document.getElementById('hud').classList.remove('active');
   document.getElementById('mobile-controls').classList.remove('active');
@@ -165,7 +166,7 @@ function returnToMainMenu(){
   document.getElementById('hud').classList.remove('active');
   document.getElementById('mobile-controls').classList.remove('active');
   if(!isMobile&&document.pointerLockElement) document.exitPointerLock();
-  clearCats();clearProjectileCats();clearToyMice();
+  clearCats();clearProjectileCats();clearVacuumCaptureAnims();clearToyMice();
   document.getElementById('blocker').classList.remove('hidden');
   document.getElementById('blocker-prompt').textContent='Choose a save slot';
   document.getElementById('blocker-subtitle').textContent='Catch \u2019em all \u2014 one day at a time';
@@ -210,6 +211,7 @@ function gameLoop(time){
     for(const cat of cats) updateCat(cat,dt,pp);
     updateNet(dt);
     updateVacuum(dt);
+    updateVacuumCaptureAnims(dt);
     updateCannonFire(dt);
     updateProjectileCats(dt);
     updateCannonArc();
