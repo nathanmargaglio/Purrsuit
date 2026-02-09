@@ -46,15 +46,19 @@ function catchCat(cat){
 
 // ===================== VACUUM CAPTURE ANIMATION =====================
 const vacuumCaptureAnims = [];
-const VACUUM_CAPTURE_ANIM_DURATION = 0.4; // seconds
+const VACUUM_CAPTURE_ANIM_DURATION = 0.6; // seconds
 
 function startVacuumCaptureAnim(cat) {
   const mesh = cat.mesh;
   // Store the initial scale for shrinking
   const initialScale = mesh.scale.clone();
+  // Compute a target position: the vacuum nozzle (slightly in front of and below the camera)
+  const nozzleOffset = new THREE.Vector3(0, -0.3, -1.0).applyQuaternion(camera.quaternion);
+  const targetPos = camera.position.clone().add(nozzleOffset);
   vacuumCaptureAnims.push({
     mesh,
     startPos: mesh.position.clone(),
+    targetPos,
     initialScale,
     progress: 0,
     spinSpeedX: 8 + Math.random() * 6,  // random spin speeds per axis
@@ -76,14 +80,17 @@ function updateVacuumCaptureAnims(dt) {
     }
 
     const t = anim.progress;
-    // Ease-in curve for acceleration toward player
-    const ease = t * t;
 
-    // Lerp position toward camera (the player)
-    anim.mesh.position.lerpVectors(anim.startPos, camera.position, ease);
+    // Update target to follow camera (player may be moving)
+    const nozzleOffset = new THREE.Vector3(0, -0.3, -1.0).applyQuaternion(camera.quaternion);
+    anim.targetPos.copy(camera.position).add(nozzleOffset);
 
-    // Shrink: scale goes from full to 0
-    const shrink = 1 - t;
+    // Ease-out for position: cat starts flying immediately and decelerates near player
+    const moveEase = 1 - (1 - t) * (1 - t);
+    anim.mesh.position.lerpVectors(anim.startPos, anim.targetPos, moveEase);
+
+    // Ease-in for shrink: cat stays visible longer, then shrinks rapidly at the end
+    const shrink = 1 - t * t;
     anim.mesh.scale.set(
       anim.initialScale.x * shrink,
       anim.initialScale.y * shrink,
