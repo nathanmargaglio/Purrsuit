@@ -117,6 +117,48 @@ function updateCannonDisplay(){
 }
 function hideUpgradeScreen(){document.getElementById('upgrade-screen').classList.remove('active');}
 
+// ===================== SAVE SLOTS =====================
+function renderSaveSlots(){
+  const container=document.getElementById('save-slots');
+  container.innerHTML='';
+  for(let i=1;i<=SAVE_SLOTS;i++){
+    const data=getSlotData(i);
+    const slot=document.createElement('div');
+    slot.className='save-slot'+(data?'':' save-slot-empty');
+    const numEl=document.createElement('div');
+    numEl.className='save-slot-number';
+    numEl.textContent=i;
+    const infoEl=document.createElement('div');
+    infoEl.className='save-slot-info';
+    const labelEl=document.createElement('div');
+    labelEl.className='save-slot-label';
+    if(data){
+      labelEl.textContent='Day '+data.day;
+      const detailEl=document.createElement('div');
+      detailEl.className='save-slot-details';
+      detailEl.textContent='Score: '+data.totalScore+' · Cats: '+data.currency;
+      infoEl.appendChild(labelEl);
+      infoEl.appendChild(detailEl);
+    } else {
+      labelEl.textContent='Empty Slot';
+      infoEl.appendChild(labelEl);
+    }
+    slot.appendChild(numEl);
+    slot.appendChild(infoEl);
+    if(data){
+      const delBtn=document.createElement('button');
+      delBtn.className='save-slot-delete';
+      delBtn.textContent='Delete';
+      delBtn.addEventListener('click',e=>{e.stopPropagation();showDeleteConfirm(i);});
+      delBtn.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();showDeleteConfirm(i);},{passive:false});
+      slot.appendChild(delBtn);
+    }
+    slot.addEventListener('click',e=>{e.stopPropagation();selectSaveSlot(i);});
+    slot.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();selectSaveSlot(i);},{passive:false});
+    container.appendChild(slot);
+  }
+}
+
 // ===================== FULLSCREEN =====================
 function updateFullscreenBtn(){
   const btn=document.getElementById('fullscreen-btn');

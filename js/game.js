@@ -56,8 +56,20 @@ document.getElementById('start-day-btn').addEventListener('click',()=>{state.day
 
 // ===================== BLOCKER =====================
 function handleBlockerActivation(){
-  if(state.phase==='MENU'){document.getElementById('blocker').classList.add('hidden');document.getElementById('settings-panel').classList.remove('visible');startDay();}
-  else if(state.phase==='PLAYING'){state.paused=false;document.getElementById('settings-panel').classList.remove('visible');if(!isMobile)requestPointerLock();document.getElementById('blocker').classList.add('hidden');}
+  if(state.phase==='MENU'){
+    // Show save slot picker instead of starting immediately
+    const slots=document.getElementById('save-slots');
+    if(!slots.classList.contains('visible')){
+      document.getElementById('blocker-prompt').classList.add('hidden');
+      document.getElementById('continue-btn').classList.add('hidden');
+      renderSaveSlots();
+      slots.classList.add('visible');
+      if(isMobile) document.getElementById('settings-panel').classList.add('visible');
+      return;
+    }
+    return; // Don't start game from blocker click when slots are visible
+  }
+  else if(state.phase==='PLAYING'){state.paused=false;document.getElementById('settings-panel').classList.remove('visible');document.getElementById('save-slots').classList.remove('visible');document.getElementById('main-menu-btn').classList.add('hidden');if(!isMobile)requestPointerLock();document.getElementById('blocker').classList.add('hidden');}
 }
 document.getElementById('blocker').addEventListener('click',handleBlockerActivation);
 document.getElementById('blocker').addEventListener('touchend',e=>{e.preventDefault();handleBlockerActivation();});
@@ -66,31 +78,75 @@ renderer.domElement.addEventListener('touchstart',e=>e.preventDefault(),{passive
 renderer.domElement.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
 
 // ===================== INIT & LOOP =====================
-// Show continue button if saved game exists
-if(hasSavedGame()){
-  const continueBtn=document.getElementById('continue-btn');
-  continueBtn.classList.remove('hidden');
-  // Peek at saved day for display
-  try{const d=JSON.parse(localStorage.getItem(SAVE_KEY));document.getElementById('continue-day').textContent=d.day||1;}catch(e){}
-  continueBtn.addEventListener('click',e=>{
-    e.stopPropagation();
-    loadGame();
-    // Update settings sliders to match loaded state
-    const sensEl=document.getElementById('setting-sensitivity');
-    const dzEl=document.getElementById('setting-deadzone');
-    if(sensEl){sensEl.value=state.settings.lookSensitivity;document.getElementById('sensitivity-value').textContent=state.settings.lookSensitivity;}
-    if(dzEl){dzEl.value=state.settings.deadZone;document.getElementById('deadzone-value').textContent=Math.round(state.settings.deadZone*100)+'%';}
-    if(isMobile) applyControllerMode();
-    continueBtn.classList.add('hidden');
-    document.getElementById('blocker').classList.add('hidden');
-    document.getElementById('settings-panel').classList.remove('visible');
-    startDay();
-  });
-  continueBtn.addEventListener('touchend',e=>{
-    e.preventDefault();e.stopPropagation();
-    continueBtn.click();
-  });
+// Migrate legacy save to slot 1
+migrateLegacySave();
+
+// Save slot selection
+function selectSaveSlot(slot){
+  const hasData=hasSavedGame(slot);
+  if(hasData){
+    loadGame(slot);
+  } else {
+    resetStateToDefaults();
+    state.activeSlot=slot;
+    saveGame();
+  }
+  // Update settings sliders to match loaded/default state
+  const sensEl=document.getElementById('setting-sensitivity');
+  const dzEl=document.getElementById('setting-deadzone');
+  if(sensEl){sensEl.value=state.settings.lookSensitivity;document.getElementById('sensitivity-value').textContent=state.settings.lookSensitivity;}
+  if(dzEl){dzEl.value=state.settings.deadZone;document.getElementById('deadzone-value').textContent=Math.round(state.settings.deadZone*100)+'%';}
+  if(isMobile) applyControllerMode();
+  document.getElementById('save-slots').classList.remove('visible');
+  document.getElementById('blocker').classList.add('hidden');
+  document.getElementById('settings-panel').classList.remove('visible');
+  startDay();
 }
+
+// Delete confirmation state
+let pendingDeleteSlot=null;
+const deleteOverlay=document.getElementById('delete-confirm-overlay');
+const deleteCancelBtn=document.getElementById('delete-cancel-btn');
+const deleteYesBtn=document.getElementById('delete-yes-btn');
+
+function showDeleteConfirm(slot){
+  pendingDeleteSlot=slot;
+  const data=getSlotData(slot);
+  document.getElementById('delete-confirm-msg').textContent=`Delete Save ${slot}${data?' (Day '+data.day+')':''}? This cannot be undone.`;
+  deleteOverlay.classList.remove('hidden');
+}
+
+deleteCancelBtn.addEventListener('click',e=>{e.stopPropagation();deleteOverlay.classList.add('hidden');pendingDeleteSlot=null;});
+deleteCancelBtn.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();deleteCancelBtn.click();},{passive:false});
+deleteYesBtn.addEventListener('click',e=>{e.stopPropagation();if(pendingDeleteSlot){deleteSave(pendingDeleteSlot);pendingDeleteSlot=null;}deleteOverlay.classList.add('hidden');renderSaveSlots();});
+deleteYesBtn.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();deleteYesBtn.click();},{passive:false});
+deleteOverlay.addEventListener('click',e=>{e.stopPropagation();});
+deleteOverlay.addEventListener('touchend',e=>{e.stopPropagation();});
+
+// Main Menu button (shown during pause)
+const mainMenuBtn=document.getElementById('main-menu-btn');
+function returnToMainMenu(){
+  // Save current game if we have an active slot
+  if(state.activeSlot) saveGame();
+  state.phase='MENU';
+  state.paused=false;
+  state.activeSlot=null;
+  // Reset UI
+  document.getElementById('hud').classList.remove('active');
+  document.getElementById('mobile-controls').classList.remove('active');
+  hideUpgradeScreen();
+  document.getElementById('blocker').classList.remove('hidden');
+  document.getElementById('blocker-prompt').textContent=isMobile?'Tap to Start':'Click to Start';
+  document.getElementById('blocker-prompt').classList.remove('hidden');
+  document.getElementById('blocker-subtitle').textContent='Catch \u2019em all \u2014 one day at a time';
+  document.getElementById('save-slots').classList.remove('visible');
+  document.getElementById('settings-panel').classList.remove('visible');
+  mainMenuBtn.classList.add('hidden');
+  if(isMobile) document.getElementById('settings-panel').classList.add('visible');
+  if(!isMobile&&document.pointerLockElement) document.exitPointerLock();
+}
+mainMenuBtn.addEventListener('click',e=>{e.stopPropagation();returnToMainMenu();});
+mainMenuBtn.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();returnToMainMenu();},{passive:false});
 buildRoomUpToRing(0);
 createCrate();
 createNet();
