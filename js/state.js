@@ -6,6 +6,7 @@ const state = {
   inventory: { toyMouse: 0 },
   paused: false,
   settings: { lookSensitivity: 2.5, deadZone: 0.15, controllerMode: 'singleAnalog', stickPosition: 'middle' },
+  activeSlot: null,
   progressRing: 0,
   activeDayRing: 0,
   expanding: false,
@@ -28,9 +29,15 @@ function getCatCountForRing(ring) { const exp = 8 * Math.pow(2, ring); return ex
 function getCatDifficulty(ring) { return 1 + ring * 0.35; }
 
 // ===================== SAVE / LOAD =====================
-const SAVE_KEY = 'purrsuit_save';
+const SAVE_KEY_PREFIX = 'purrsuit_save_';
+const SAVE_SLOTS = [1, 2, 3];
+// Legacy key for migration
+const LEGACY_SAVE_KEY = 'purrsuit_save';
+
+function getSaveKey(slot) { return SAVE_KEY_PREFIX + slot; }
 
 function saveGame() {
+  if (!state.activeSlot) return;
   const data = {
     version: 1,
     day: state.day,
@@ -41,14 +48,15 @@ function saveGame() {
     progressRing: state.progressRing,
     settings: { ...state.settings },
   };
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch(e) {}
+  try { localStorage.setItem(getSaveKey(state.activeSlot), JSON.stringify(data)); } catch(e) {}
 }
 
-function loadGame() {
+function loadGame(slot) {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
+    const raw = localStorage.getItem(getSaveKey(slot));
     if (!raw) return false;
     const data = JSON.parse(raw);
+    state.activeSlot = slot;
     state.day = data.day || 1;
     state.totalScore = data.totalScore || 0;
     state.currency = data.currency || 0;
@@ -80,10 +88,45 @@ function loadGame() {
   } catch(e) { return false; }
 }
 
-function hasSavedGame() {
-  try { return localStorage.getItem(SAVE_KEY) !== null; } catch(e) { return false; }
+function hasSavedGame(slot) {
+  if (slot !== undefined) {
+    try { return localStorage.getItem(getSaveKey(slot)) !== null; } catch(e) { return false; }
+  }
+  return SAVE_SLOTS.some(s => hasSavedGame(s));
 }
 
-function deleteSave() {
-  try { localStorage.removeItem(SAVE_KEY); } catch(e) {}
+function getSlotInfo(slot) {
+  try {
+    const raw = localStorage.getItem(getSaveKey(slot));
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return { day: data.day || 1, totalScore: data.totalScore || 0, progressRing: data.progressRing || 0 };
+  } catch(e) { return null; }
+}
+
+function deleteSave(slot) {
+  try { localStorage.removeItem(getSaveKey(slot)); } catch(e) {}
+  if (state.activeSlot === slot) state.activeSlot = null;
+}
+
+function resetStateToDefaults() {
+  state.day = 1;
+  state.totalScore = 0;
+  state.currency = 0;
+  state.upgrades = { netSize: 0, walkSpeed: 0, bagSize: 0, dayTime: 0, catCannon: 0, catVacuum: 0, crateSize: 0, vacuumStrength: 0, catRate: 0 };
+  state.inventory = { toyMouse: 0 };
+  state.progressRing = 0;
+}
+
+// Migrate legacy single save to slot 1 on first load
+function migrateLegacySave() {
+  try {
+    const raw = localStorage.getItem(LEGACY_SAVE_KEY);
+    if (raw && !localStorage.getItem(getSaveKey(1))) {
+      localStorage.setItem(getSaveKey(1), raw);
+      localStorage.removeItem(LEGACY_SAVE_KEY);
+    } else if (raw) {
+      localStorage.removeItem(LEGACY_SAVE_KEY);
+    }
+  } catch(e) {}
 }

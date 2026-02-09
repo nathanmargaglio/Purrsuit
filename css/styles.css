@@ -15,10 +15,31 @@ canvas { display: block; touch-action: none; }
 @media (max-width: 600px) { #blocker h1 { font-size: 2.8rem; } #blocker .subtitle { font-size: 1rem; margin-bottom: 1rem; } #blocker .prompt { font-size: 1.1rem; padding: 10px 24px; } }
 @media (max-height: 500px) { #blocker h1 { font-size: 2rem; margin-bottom: 0.25rem; } #blocker .subtitle { font-size: 0.9rem; margin-bottom: 0.5rem; } #blocker .prompt { font-size: 1rem; padding: 8px 20px; } .settings-panel { margin-top: 12px; padding: 10px 16px; } .setting-row { margin-bottom: 6px; } }
 @keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.05);} }
-.continue-btn { margin-top: 16px; background: none; border: 2px solid #F7C948; color: #F7C948; font-family: 'Fredoka', sans-serif; font-size: 1.1rem; padding: 10px 28px; border-radius: 50px; cursor: pointer; transition: background 0.2s, color 0.2s; }
-.continue-btn:hover { background: #F7C948; color: #1a1a2e; }
-.continue-btn.hidden { display: none; }
-@media (max-width: 600px) { .continue-btn { font-size: 0.95rem; padding: 8px 22px; } }
+/* ===================== SAVE SLOTS ===================== */
+.save-slots { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 340px; flex-shrink: 0; }
+.save-slots.hidden { display: none; }
+.save-slot { background: rgba(255,255,255,0.06); border: 2px solid rgba(247,201,72,0.3); border-radius: 14px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; transition: border-color 0.2s; }
+.save-slot:hover { border-color: rgba(247,201,72,0.6); }
+.save-slot-label { font-family: 'Fredoka', sans-serif; font-size: 1rem; color: #F7C948; min-width: 56px; }
+.save-slot-info { flex: 1; font-size: 0.9rem; color: #E8C9A0; font-family: 'Nunito', sans-serif; }
+.save-slot-actions { display: flex; gap: 6px; }
+.save-slot-btn { background: none; border: 2px solid rgba(247,201,72,0.5); color: #F7C948; font-family: 'Fredoka', sans-serif; font-size: 0.85rem; padding: 6px 14px; border-radius: 8px; cursor: pointer; transition: background 0.2s, color 0.2s; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
+.save-slot-btn:hover { background: rgba(247,201,72,0.15); }
+.save-slot-btn.slot-play { border-color: rgba(74,222,128,0.6); color: #4ADE80; }
+.save-slot-btn.slot-play:hover { background: rgba(74,222,128,0.15); }
+.save-slot-btn.slot-delete { border-color: rgba(255,68,68,0.5); color: #FF4444; }
+.save-slot-btn.slot-delete:hover { background: rgba(255,68,68,0.15); }
+.save-slot-btn.hidden { display: none; }
+.delete-confirm { margin-top: 12px; background: rgba(255,68,68,0.1); border: 2px solid rgba(255,68,68,0.4); border-radius: 14px; padding: 14px 18px; text-align: center; width: 100%; max-width: 340px; flex-shrink: 0; }
+.delete-confirm.hidden { display: none; }
+.delete-confirm-text { font-family: 'Fredoka', sans-serif; font-size: 1rem; color: #FF8888; margin-bottom: 10px; }
+.delete-confirm-actions { display: flex; gap: 10px; justify-content: center; }
+/* Main Menu Button (shown when paused) */
+.main-menu-btn { margin-top: 12px; background: none; border: 2px solid rgba(232,130,42,0.6); color: #E8822A; font-family: 'Fredoka', sans-serif; font-size: 0.95rem; padding: 8px 24px; border-radius: 50px; cursor: pointer; transition: background 0.2s, color 0.2s; -webkit-tap-highlight-color: transparent; flex-shrink: 0; }
+.main-menu-btn:hover { background: rgba(232,130,42,0.15); }
+.main-menu-btn.hidden { display: none; }
+@media (max-width: 600px) { .save-slots { max-width: 300px; } .save-slot { padding: 10px 12px; gap: 8px; } .save-slot-label { font-size: 0.9rem; min-width: 48px; } .save-slot-info { font-size: 0.8rem; } .save-slot-btn { font-size: 0.8rem; padding: 5px 10px; } .main-menu-btn { font-size: 0.85rem; padding: 6px 18px; } }
+@media (max-height: 500px) { .save-slots { gap: 6px; } .save-slot { padding: 8px 10px; } }
 
 /* ===================== HUD ===================== */
 #hud { position: fixed; inset: 0; z-index: 10; pointer-events: none; display: none; }
@@ -156,6 +177,8 @@ canvas { display: block; touch-action: none; }
 .upgrade-btn.cant-afford { background: #C4B49A; cursor: default; }
 .start-day-btn { display: block; margin: 0 auto; background: #4ADE80; color: #1a4a2a; border: none; font-family: 'Fredoka', sans-serif; font-size: 1.3rem; padding: 14px 40px; border-radius: 50px; cursor: pointer; transition: background 0.2s, transform 0.1s; }
 .start-day-btn:hover { background: #34C96A; transform: scale(1.03); }
+.upgrade-main-menu-btn { display: block; margin: 12px auto 0; background: none; border: 2px solid #B8956A; color: #8B7355; font-family: 'Fredoka', sans-serif; font-size: 1rem; padding: 10px 28px; border-radius: 50px; cursor: pointer; transition: background 0.2s, color 0.2s; }
+.upgrade-main-menu-btn:hover { background: rgba(184,149,106,0.15); color: #4A3520; }
 
 /* ===================== DAY INTRO ===================== */
 .day-intro { position: fixed; top: 30%; left: 50%; transform: translate(-50%,-50%); font-family: 'Fredoka', sans-serif; font-size: 3rem; color: #F7C948; text-shadow: 3px 3px 6px rgba(0,0,0,0.6); z-index: 50; pointer-events: none; opacity: 0; display: none; }
