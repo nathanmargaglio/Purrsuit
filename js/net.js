@@ -24,7 +24,14 @@ function checkCapture() {
   if(closest) catchCat(closest);
 }
 function catchCat(cat){
-  cat.caught=true;scene.remove(cat.mesh);state.catsInBag++;
+  cat.caught=true;
+  // If vacuum mode is active, animate the cat being sucked in instead of instant removal
+  if(state.vacuumMode && vacuumActive) {
+    startVacuumCaptureAnim(cat);
+  } else {
+    scene.remove(cat.mesh);
+  }
+  state.catsInBag++;
   // Update capture combo
   state.captureCombo++;
   state.captureComboTimer=2.0; // 2 second window to keep combo alive
@@ -35,6 +42,64 @@ function catchCat(cat){
   const comboPitch=Math.min(1.0+(state.captureCombo-1)*0.08,2.0);
   playCatchSound(comboPitch);
   updateBagDisplay();
+}
+
+// ===================== VACUUM CAPTURE ANIMATION =====================
+const vacuumCaptureAnims = [];
+const VACUUM_CAPTURE_ANIM_DURATION = 0.4; // seconds
+
+function startVacuumCaptureAnim(cat) {
+  const mesh = cat.mesh;
+  // Store the initial scale for shrinking
+  const initialScale = mesh.scale.clone();
+  vacuumCaptureAnims.push({
+    mesh,
+    startPos: mesh.position.clone(),
+    initialScale,
+    progress: 0,
+    spinSpeedX: 8 + Math.random() * 6,  // random spin speeds per axis
+    spinSpeedY: 10 + Math.random() * 8,
+    spinSpeedZ: 6 + Math.random() * 5,
+  });
+}
+
+function updateVacuumCaptureAnims(dt) {
+  for (let i = vacuumCaptureAnims.length - 1; i >= 0; i--) {
+    const anim = vacuumCaptureAnims[i];
+    anim.progress += dt / VACUUM_CAPTURE_ANIM_DURATION;
+
+    if (anim.progress >= 1) {
+      // Animation complete — remove mesh from scene
+      scene.remove(anim.mesh);
+      vacuumCaptureAnims.splice(i, 1);
+      continue;
+    }
+
+    const t = anim.progress;
+    // Ease-in curve for acceleration toward player
+    const ease = t * t;
+
+    // Lerp position toward camera (the player)
+    anim.mesh.position.lerpVectors(anim.startPos, camera.position, ease);
+
+    // Shrink: scale goes from full to 0
+    const shrink = 1 - t;
+    anim.mesh.scale.set(
+      anim.initialScale.x * shrink,
+      anim.initialScale.y * shrink,
+      anim.initialScale.z * shrink
+    );
+
+    // Rotate on all axes
+    anim.mesh.rotation.x += anim.spinSpeedX * dt;
+    anim.mesh.rotation.y += anim.spinSpeedY * dt;
+    anim.mesh.rotation.z += anim.spinSpeedZ * dt;
+  }
+}
+
+function clearVacuumCaptureAnims() {
+  for (const anim of vacuumCaptureAnims) scene.remove(anim.mesh);
+  vacuumCaptureAnims.length = 0;
 }
 function isNearCrate(){const dx=camera.position.x,dz=camera.position.z;return Math.sqrt(dx*dx+dz*dz)<getCrateRadius();}
 
