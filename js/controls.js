@@ -50,33 +50,54 @@ function setupMobileControls(){
   },()=>{
     if(state.settings.controllerMode==='singleAnalog') saOnEnd();
     else{mobileInput.moveX=0;mobileInput.moveY=0;}
-    // Only record as a valid tap-end if touch was short (not a drag/hold)
-    const now=Date.now();
-    if(!doubleTapToolActive && now-lastTapStart<MAX_TAP_DURATION){
-      lastTapEnd=now;
-    }
-    // Deactivate held tools if double-tap tool was active
-    if(doubleTapToolActive){
-      doubleTapToolActive=false;
-      lastTapEnd=0; // Reset so release after tool use doesn't chain into next detection
-      if(state.vacuumMode) stopVacuum();
-      if(state.cannonMode) stopCannonFire();
+    // Double-tap detection only in dual analog mode
+    if(state.settings.controllerMode!=='singleAnalog'){
+      const now=Date.now();
+      if(!doubleTapToolActive && now-lastTapStart<MAX_TAP_DURATION){
+        lastTapEnd=now;
+      }
+      if(doubleTapToolActive){
+        doubleTapToolActive=false;
+        lastTapEnd=0;
+        if(state.vacuumMode) stopVacuum();
+        if(state.cannonMode) stopCannonFire();
+      }
     }
   },()=>{
-    // onStart callback: record start time and check for double-tap
     lastTapStart=Date.now();
     if(state.phase!=='PLAYING'||state.expanding) return;
-    if(lastTapEnd>0 && lastTapStart-lastTapEnd<DOUBLE_TAP_THRESHOLD){
-      doubleTapToolActive=true;
-      lastTapEnd=0; // Reset to prevent repeated false triggers
-      if(state.cannonMode) startCannonFire();
-      else if(state.vacuumMode) startVacuum();
-      else startSwing();
+    // Double-tap detection only in dual analog mode
+    if(state.settings.controllerMode!=='singleAnalog'){
+      if(lastTapEnd>0 && lastTapStart-lastTapEnd<DOUBLE_TAP_THRESHOLD){
+        doubleTapToolActive=true;
+        lastTapEnd=0;
+        if(state.cannonMode) startCannonFire();
+        else if(state.vacuumMode) startVacuum();
+        else startSwing();
+      }
     }
   });
   makeDJ('joystick-zone-right','joystick-base-right','joystick-knob-right',(x,y)=>{mobileInput.lookX=x;mobileInput.lookY=y;},()=>{mobileInput.lookX=0;mobileInput.lookY=0;});
-  // Hide the swing button on mobile — tool activation is now via double-tap on joystick
-  if(btnSwing) btnSwing.style.display='none';
+  // In single analog mode, show swing button as general action button
+  // In dual analog mode, hide it (tool activation via double-tap on joystick)
+  if(btnSwing){
+    btnSwing.addEventListener('touchstart',e=>{
+      e.preventDefault();e.stopPropagation();
+      if(state.phase!=='PLAYING'||state.expanding) return;
+      if(state.cannonMode) startCannonFire();
+      else if(state.vacuumMode) startVacuum();
+      else startSwing();
+    },{passive:false});
+    btnSwing.addEventListener('touchend',e=>{
+      e.preventDefault();e.stopPropagation();
+      if(state.vacuumMode) stopVacuum();
+      if(state.cannonMode) stopCannonFire();
+    },{passive:false});
+    btnSwing.addEventListener('touchcancel',e=>{
+      if(state.vacuumMode) stopVacuum();
+      if(state.cannonMode) stopCannonFire();
+    },{passive:false});
+  }
   const btnCannon=document.getElementById('btn-cannon');
   if(btnCannon) btnCannon.addEventListener('touchstart',e=>{e.preventDefault();toggleCannonMode();},{passive:false});
   const btnVacuum=document.getElementById('btn-vacuum');
@@ -114,19 +135,24 @@ function applyControllerMode(){
   const rightZone=document.getElementById('joystick-zone-right');
   const leftZone=document.getElementById('joystick-zone');
   const stickPosRow=document.getElementById('stick-position-row');
-  // Single Analog: hide right stick, single stick takes full width
+  const btnSwing=document.getElementById('btn-swing');
+  // Single Analog: hide right stick, single stick takes full/half width
   // Dual Analog: show both sticks at 45% width each
   if(rightZone) rightZone.style.display=isSA?'none':'';
   if(isSA){
     // Position the single stick based on stickPosition setting
     const pos=state.settings.stickPosition;
     if(leftZone){
-      if(pos==='middle'){leftZone.style.width='100%';leftZone.style.left='0';leftZone.style.right='auto';}
+      if(pos==='middle'||pos==='center'){leftZone.style.width='60%';leftZone.style.left='20%';leftZone.style.right='auto';}
       else if(pos==='left'){leftZone.style.width='50%';leftZone.style.left='0';leftZone.style.right='auto';}
       else if(pos==='right'){leftZone.style.width='50%';leftZone.style.left='auto';leftZone.style.right='0';}
     }
+    // Show swing button as action button in single analog mode
+    if(btnSwing) btnSwing.style.display='';
   } else {
     if(leftZone){leftZone.style.width='';leftZone.style.left='';leftZone.style.right='';}
+    // Hide swing button in dual analog mode (use double-tap instead)
+    if(btnSwing) btnSwing.style.display='none';
   }
   // Show/hide stick position row based on mode
   if(stickPosRow) stickPosRow.style.display=isSA?'flex':'none';
@@ -177,9 +203,17 @@ function updatePlayer(dt) {
     if(bv) bv.classList.toggle('visible',!!state.upgrades.catVacuum);
     const bm=document.getElementById('btn-mouse');
     if(bm) bm.classList.toggle('visible',state.inventory.toyMouse>0);
+    // Update action button icon based on active tool
+    const bs=document.getElementById('btn-swing');
+    if(bs){
+      if(state.cannonMode) bs.textContent='🔫';
+      else if(state.vacuumMode) bs.textContent='🌀';
+      else bs.textContent='🥅';
+    }
   }
-  if(state.cannonMode){if(state.catsInBag>0) showCenterMsg(isMobile?"Cannon mode! Double-tap stick to shoot":"Cannon mode! Click to shoot · Q to switch"); else showCenterMsg(isMobile?"No cats to shoot!":"No cats to shoot! Q to switch back");}
-  else if(state.vacuumMode){if(state.catsInBag>=getMaxBag()) showCenterMsg(isMobile?"Bag full! Return to crate":"Bag full! Return to crate · V to switch"); else showCenterMsg(isMobile?"Vacuum mode! Double-tap & hold stick to suck":"Vacuum mode! Hold click to suck · V to switch");}
+  const isSA=isMobile&&state.settings.controllerMode==='singleAnalog';
+  if(state.cannonMode){if(state.catsInBag>0) showCenterMsg(isMobile?(isSA?"Cannon mode! Tap action to shoot":"Cannon mode! Double-tap stick to shoot"):"Cannon mode! Click to shoot · Q to switch"); else showCenterMsg(isMobile?"No cats to shoot!":"No cats to shoot! Q to switch back");}
+  else if(state.vacuumMode){if(state.catsInBag>=getMaxBag()) showCenterMsg(isMobile?"Bag full! Return to crate":"Bag full! Return to crate · V to switch"); else showCenterMsg(isMobile?(isSA?"Vacuum mode! Hold action to suck":"Vacuum mode! Double-tap & hold stick to suck"):"Vacuum mode! Hold click to suck · V to switch");}
   else if(!isMobile){const extras=[];if(state.upgrades.catCannon) extras.push("Q for cannon");if(state.upgrades.catVacuum) extras.push("V for vacuum");if(state.inventory.toyMouse>0) extras.push("T for toy mouse");const suffix=extras.length?" · "+extras.join(" · "):"";if(state.catsInBag>=getMaxBag()) showCenterMsg("Bag full! Return to crate"+(state.upgrades.catCannon?" or use cannon (Q)":"")); else hideCenterMsg();}
   else{if(state.catsInBag>=getMaxBag()) showCenterMsg("Bag full! Return to crate"); else hideCenterMsg();}
 }
