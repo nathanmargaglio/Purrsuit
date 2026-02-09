@@ -60,7 +60,23 @@ function handleBlockerActivation(){
   else if(state.phase==='PLAYING'){state.paused=false;document.getElementById('settings-panel').classList.remove('visible');if(!isMobile)requestPointerLock();document.getElementById('blocker').classList.add('hidden');}
 }
 document.getElementById('blocker').addEventListener('click',handleBlockerActivation);
-document.getElementById('blocker').addEventListener('touchend',e=>{e.preventDefault();handleBlockerActivation();});
+(function(){
+  const blocker=document.getElementById('blocker');
+  let touchStartY=0,touchStartX=0,touchMoved=false;
+  blocker.addEventListener('touchstart',e=>{
+    touchStartY=e.touches[0].clientY;touchStartX=e.touches[0].clientX;touchMoved=false;
+  },{passive:true});
+  blocker.addEventListener('touchmove',e=>{
+    const dy=Math.abs(e.touches[0].clientY-touchStartY);
+    const dx=Math.abs(e.touches[0].clientX-touchStartX);
+    if(dy>10||dx>10) touchMoved=true;
+  },{passive:true});
+  blocker.addEventListener('touchend',e=>{
+    if(!touchMoved&&!e.target.closest('.settings-panel')&&!e.target.closest('.continue-btn')){
+      e.preventDefault();handleBlockerActivation();
+    }
+  });
+})();
 if(isMobile){document.getElementById('blocker-prompt').textContent='Tap to Start';document.getElementById('settings-panel').classList.add('visible');}
 renderer.domElement.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});
 renderer.domElement.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
