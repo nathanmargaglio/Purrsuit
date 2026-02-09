@@ -8,7 +8,7 @@ document.addEventListener('mouseup',e=>{if(e.button===0){if(state.vacuumMode) st
 document.addEventListener('keydown',e=>{if(e.code==='KeyQ'&&!e.repeat&&state.phase==='PLAYING'&&state.upgrades.catCannon) toggleCannonMode();});
 document.addEventListener('keydown',e=>{if(e.code==='KeyV'&&!e.repeat&&state.phase==='PLAYING'&&state.upgrades.catVacuum) toggleVacuumMode();});
 document.addEventListener('keydown',e=>{if(e.code==='KeyT'&&!e.repeat&&state.phase==='PLAYING') throwToyMouse();});
-document.addEventListener('pointerlockchange',()=>{pointerLocked=document.pointerLockElement===renderer.domElement;if(!pointerLocked&&state.phase==='PLAYING'&&!isMobile){state.paused=true;document.getElementById('blocker').classList.remove('hidden');document.getElementById('blocker-prompt').textContent='Click to Resume';document.getElementById('blocker-subtitle').textContent='Game paused';}});
+document.addEventListener('pointerlockchange',()=>{pointerLocked=document.pointerLockElement===renderer.domElement;if(!pointerLocked&&state.phase==='PLAYING'&&!isMobile){state.paused=true;document.getElementById('blocker').classList.remove('hidden');document.getElementById('blocker-prompt').textContent='Click to Resume';document.getElementById('blocker-subtitle').textContent='Game paused';document.getElementById('save-slots').classList.add('hidden');document.getElementById('delete-confirm').classList.add('hidden');document.getElementById('main-menu-btn').classList.remove('hidden');}});
 function requestPointerLock(){if(!isMobile) renderer.domElement.requestPointerLock();}
 
 // ===================== MOBILE CONTROLS =====================
@@ -106,7 +106,7 @@ function setupMobileControls(){
   if(btnDeposit) btnDeposit.style.display='none';
   const btnMouse=document.getElementById('btn-mouse');
   if(btnMouse) btnMouse.addEventListener('touchstart',e=>{e.preventDefault();throwToyMouse();},{passive:false});
-  hudPause.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();state.paused=true;document.getElementById('blocker').classList.remove('hidden');document.getElementById('blocker-prompt').textContent='Tap to Resume';document.getElementById('blocker-subtitle').textContent='Game paused';if(isMobile)document.getElementById('settings-panel').classList.add('visible');},{passive:false});
+  hudPause.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();state.paused=true;document.getElementById('blocker').classList.remove('hidden');document.getElementById('blocker-prompt').textContent='Tap to Resume';document.getElementById('blocker-subtitle').textContent='Game paused';document.getElementById('save-slots').classList.add('hidden');document.getElementById('delete-confirm').classList.add('hidden');document.getElementById('main-menu-btn').classList.remove('hidden');if(isMobile)document.getElementById('settings-panel').classList.add('visible');},{passive:false});
   const sS=document.getElementById('setting-sensitivity'),sV=document.getElementById('sensitivity-value'),dS=document.getElementById('setting-deadzone'),dV=document.getElementById('deadzone-value');
   sS.addEventListener('input',()=>{state.settings.lookSensitivity=parseFloat(sS.value);sV.textContent=sS.value;});
   dS.addEventListener('input',()=>{state.settings.deadZone=parseFloat(dS.value);dV.textContent=Math.round(dS.value*100)+'%';});

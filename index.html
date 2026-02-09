@@ -11,7 +11,16 @@
   <h1>🐱 PURRSUIT</h1>
   <div class="subtitle" id="blocker-subtitle">Catch 'em all — one day at a time</div>
   <div class="prompt" id="blocker-prompt">Click to Start</div>
-  <button class="continue-btn hidden" id="continue-btn">Continue (Day <span id="continue-day">1</span>)</button>
+  <div class="save-slots" id="save-slots">
+    <div class="save-slot" data-slot="1"><div class="save-slot-label">Save 1</div><div class="save-slot-info" id="slot-info-1">Empty</div><div class="save-slot-actions"><button class="save-slot-btn slot-play" id="slot-play-1">New Game</button><button class="save-slot-btn slot-delete hidden" id="slot-delete-1">Delete</button></div></div>
+    <div class="save-slot" data-slot="2"><div class="save-slot-label">Save 2</div><div class="save-slot-info" id="slot-info-2">Empty</div><div class="save-slot-actions"><button class="save-slot-btn slot-play" id="slot-play-2">New Game</button><button class="save-slot-btn slot-delete hidden" id="slot-delete-2">Delete</button></div></div>
+    <div class="save-slot" data-slot="3"><div class="save-slot-label">Save 3</div><div class="save-slot-info" id="slot-info-3">Empty</div><div class="save-slot-actions"><button class="save-slot-btn slot-play" id="slot-play-3">New Game</button><button class="save-slot-btn slot-delete hidden" id="slot-delete-3">Delete</button></div></div>
+  </div>
+  <div class="delete-confirm hidden" id="delete-confirm">
+    <div class="delete-confirm-text">Delete this save?</div>
+    <div class="delete-confirm-actions"><button class="save-slot-btn slot-delete" id="delete-yes">Yes, Delete</button><button class="save-slot-btn slot-play" id="delete-no">Cancel</button></div>
+  </div>
+  <button class="main-menu-btn hidden" id="main-menu-btn">Main Menu</button>
   <div class="settings-panel" id="settings-panel">
     <div class="settings-title">⚙️ Controls</div>
     <div class="setting-row controller-mode-row" id="controller-mode-row">
@@ -65,6 +74,7 @@
     <div class="upgrade-currency">🐱 <span id="currency-display">0</span> cats to spend</div>
     <div class="upgrade-cards" id="upgrade-cards"></div>
     <button class="start-day-btn" id="start-day-btn">Start Next Day →</button>
+    <button class="upgrade-main-menu-btn" id="upgrade-main-menu-btn">Main Menu</button>
   </div>
 </div>
 
